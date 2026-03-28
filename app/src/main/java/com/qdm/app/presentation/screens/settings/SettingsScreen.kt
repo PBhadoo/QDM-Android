@@ -1,7 +1,5 @@
 package com.parveenbhadoo.qdm.presentation.screens.settings
 
-import android.content.Intent
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -179,13 +177,15 @@ fun SettingsScreen(
                 is UpdateCheckState.Checking -> stringResource(R.string.update_checking)
                 is UpdateCheckState.UpToDate -> stringResource(R.string.update_up_to_date, s.version)
                 is UpdateCheckState.UpdateAvailable -> stringResource(R.string.update_available, s.version)
+                is UpdateCheckState.Downloading -> "Downloading… ${s.progress}%"
+                is UpdateCheckState.ReadyToInstall -> "Installing…"
                 is UpdateCheckState.Failed -> stringResource(R.string.update_failed)
             }
             val updateClick: (() -> Unit) = when (val s = updateState) {
-                is UpdateCheckState.UpdateAvailable -> {
-                    { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(s.url))) }
-                }
-                is UpdateCheckState.Checking -> ({})
+                is UpdateCheckState.UpdateAvailable -> ({ viewModel.downloadAndInstall(s.apkUrl) })
+                is UpdateCheckState.Checking,
+                is UpdateCheckState.Downloading,
+                is UpdateCheckState.ReadyToInstall -> ({})
                 else -> ({ viewModel.checkForUpdates() })
             }
             SettingItem(
@@ -193,6 +193,7 @@ fun SettingsScreen(
                 subtitle = updateSubtitle,
                 subtitleColor = when (updateState) {
                     is UpdateCheckState.UpdateAvailable -> Color(0xFF4CAF50)
+                    is UpdateCheckState.Downloading -> MaterialTheme.colorScheme.primary
                     is UpdateCheckState.Failed -> MaterialTheme.colorScheme.error
                     else -> null
                 },
