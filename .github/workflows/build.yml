@@ -40,6 +40,9 @@ jobs:
             echo "$KEYSTORE_BASE64" | base64 -d > app/keystore.jks
           fi
 
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
       - name: Build Release APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
