@@ -55,11 +55,14 @@ class DownloadEngine @Inject constructor(
                     return@launch
                 }
 
-                val fileDescriptor = FileUtils.openFileDescriptorForWrite(context, fileUri) ?: run {
+                val pfd = FileUtils.openFileDescriptorForWrite(context, fileUri) ?: run {
                     fail(downloadId, "Cannot open file for writing")
                     return@launch
                 }
 
+                // pfd.use ensures ParcelFileDescriptor stays alive (and open) for the entire
+                // download, preventing the GC from closing the underlying fd prematurely.
+                pfd.use { descriptor ->
                 val speedCalc = SpeedCalculator()
                 var downloadedBytes = item.downloadedBytes
                 val totalBytes = item.totalBytes
@@ -87,7 +90,7 @@ class DownloadEngine @Inject constructor(
                                 url = item.url,
                                 startByte = start,
                                 endByte = end,
-                                fileDescriptor = fileDescriptor,
+                                fileDescriptor = descriptor.fileDescriptor,
                                 extraHeaders = buildHeaders(item),
                                 progressCallback = { bytes ->
                                     if (!isActive) return@ChunkDownloader
@@ -116,6 +119,7 @@ class DownloadEngine @Inject constructor(
                         throw failed.exceptionOrNull() ?: Exception("Chunk failed")
                     }
                 }
+                } // end pfd.use
 
                 if (isActive) {
                     FileUtils.markFileDownloadComplete(context, fileUri)

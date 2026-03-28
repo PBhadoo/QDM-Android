@@ -25,9 +25,14 @@ class ChunkDownloader(
     suspend fun download(): Result<Unit> = runCatching {
         val requestBuilder = Request.Builder()
             .url(url)
-            .header("Range", "bytes=$startByte-$endByte")
             .header("Accept-Encoding", "identity") // Prevent gzip from breaking byte accounting
         extraHeaders.forEach { (k, v) -> requestBuilder.header(k, v) }
+        // Only add Range header when actually requesting a sub-range.
+        // startByte=0 + endByte=-1 means "full file" — sending Range: bytes=0--1 causes HTTP 416.
+        if (startByte > 0 || endByte >= 0) {
+            val end = if (endByte >= 0) "$endByte" else ""
+            requestBuilder.header("Range", "bytes=$startByte-$end")
+        }
 
         val response = client.newCall(requestBuilder.build()).execute()
         if (!response.isSuccessful) {

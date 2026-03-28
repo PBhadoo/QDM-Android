@@ -6,9 +6,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.os.ParcelFileDescriptor
 import androidx.documentfile.provider.DocumentFile
 import java.io.File
-import java.io.FileDescriptor
 
 object FileUtils {
 
@@ -27,9 +27,10 @@ object FileUtils {
         return filenameRegex.find(disposition)?.groupValues?.getOrNull(1)?.trim()
     }
 
-    fun openFileDescriptorForWrite(context: Context, uri: Uri): FileDescriptor? {
+    // Returns the ParcelFileDescriptor — caller MUST close it (use .use {}) to avoid fd leak.
+    fun openFileDescriptorForWrite(context: Context, uri: Uri): ParcelFileDescriptor? {
         return try {
-            context.contentResolver.openFileDescriptor(uri, "rw")?.fileDescriptor
+            context.contentResolver.openFileDescriptor(uri, "rw")
         } catch (e: Exception) {
             null
         }
