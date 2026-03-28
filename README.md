@@ -85,6 +85,13 @@ Place your `keystore.jks` in the `app/` directory, then:
 
 Every push to `main` triggers a build. Pushing a `v*` tag (e.g. `v1.0.1`) triggers a full signed release build and publishes the APK to GitHub Releases automatically.
 
+## Credits
+
+QDM is inspired by the UX and feature set of:
+
+- [IDM — Internet Download Manager](https://www.internetdownloadmanager.com/) (Windows)
+- [1DM — Download Manager & Browser](https://play.google.com/store/apps/details?id=idm.internet.download.manager) (Android)
+
 ## License
 
 ```
