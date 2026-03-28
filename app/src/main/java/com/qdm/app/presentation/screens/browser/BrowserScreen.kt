@@ -115,8 +115,11 @@ fun BrowserScreen(
                         value = urlInput,
                         onValueChange = { urlInput = it },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(end = 4.dp),
-                        placeholder = { Text("Search or enter URL") },
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = {
+                            Text("Search or enter URL", style = MaterialTheme.typography.bodySmall)
+                        },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Uri,
                             imeAction = ImeAction.Go
@@ -132,17 +135,6 @@ fun BrowserScreen(
                 },
                 navigationIcon = {},
                 actions = {
-                    IconButton(
-                        onClick = { webViewInstance?.goBack() },
-                        enabled = uiState.canGoBack
-                    ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-                    IconButton(
-                        onClick = { webViewInstance?.goForward() },
-                        enabled = uiState.canGoForward
-                    ) { Icon(Icons.AutoMirrored.Filled.ArrowForward, "Forward") }
-                    IconButton(onClick = { webViewInstance?.reload() }) {
-                        Icon(Icons.Default.Refresh, "Refresh")
-                    }
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "More options")
                     }
@@ -151,12 +143,30 @@ fun BrowserScreen(
                         onDismissRequest = { menuExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Back to QDM") },
-                            onClick = { menuExpanded = false; onNavigateBack() }
+                            text = { Text("Back") },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) },
+                            enabled = uiState.canGoBack,
+                            onClick = { menuExpanded = false; webViewInstance?.goBack() }
                         )
                         DropdownMenuItem(
-                            text = { Text("QDM Browser History") },
+                            text = { Text("Forward") },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, null) },
+                            enabled = uiState.canGoForward,
+                            onClick = { menuExpanded = false; webViewInstance?.goForward() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Reload") },
+                            leadingIcon = { Icon(Icons.Default.Refresh, null) },
+                            onClick = { menuExpanded = false; webViewInstance?.reload() }
+                        )
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text("History") },
                             onClick = { menuExpanded = false; viewModel.showHistory() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Back to QDM") },
+                            onClick = { menuExpanded = false; onNavigateBack() }
                         )
                     }
                 }
