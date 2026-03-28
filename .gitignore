@@ -10,3 +10,5 @@
 *.jks
 *.keystore
 app/build/
+.kotlin/
+.claude/

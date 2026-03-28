@@ -5,12 +5,6 @@ plugins {
     id("com.google.dagger.hilt.android")
 }
 
-// Override KGP 2.x default of JetBrains JDK for compiler daemon.
-// "any" vendor matches the installed Temurin JDK 21 without downloading.
-kotlin {
-    jvmToolchain(21)
-}
-
 android {
     namespace = "com.parveenbhadoo.qdm"
     compileSdk = 35
