@@ -84,7 +84,7 @@ Every push to `main` triggers a build. Pushing a `v*` tag (e.g. `v1.0.1`) trigge
 ## License
 
 ```
-Copyright 2024 Parveen Bhadoo
+Copyright 2026 Parveen Bhadoo
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
