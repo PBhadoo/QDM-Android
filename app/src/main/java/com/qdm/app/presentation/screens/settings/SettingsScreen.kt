@@ -1,5 +1,6 @@
 package com.parveenbhadoo.qdm.presentation.screens.settings
 
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
