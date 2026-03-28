@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">QDM</string>
+    <string name="app_name">Quantum</string>
     <string name="app_full_name">Quantum Download Manager</string>
 
     <!-- Tabs -->

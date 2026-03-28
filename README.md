@@ -1,6 +1,6 @@
 <div align="center">
 
-# QDM — Android Download Manager
+# Quantum Download Manager
 
 A fast, modern download manager for Android built with Jetpack Compose and Material 3.
 
