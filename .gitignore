@@ -12,3 +12,4 @@
 app/build/
 .kotlin/
 .claude/
+gradle/gradle-daemon-jvm.properties
