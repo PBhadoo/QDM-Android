@@ -25,7 +25,12 @@ data class BrowserUiState(
     val detectedMediaUrl: String? = null,
     val detectedMediaHeaders: Map<String, String> = emptyMap(),
     val adBlockedCount: Int = 0,
-    val showHistory: Boolean = false
+    val showHistory: Boolean = false,
+    val showBrowserSettings: Boolean = false,
+    val desktopMode: Boolean = false,
+    val javaScriptEnabled: Boolean = true,
+    val loadImages: Boolean = true,
+    val adBlockEnabled: Boolean = true
 )
 
 @HiltViewModel
@@ -97,4 +102,11 @@ class BrowserViewModel @Inject constructor(
     fun clearHistory() {
         viewModelScope.launch { browserRepository.clearHistory() }
     }
+
+    fun showBrowserSettings() = _uiState.update { it.copy(showBrowserSettings = true) }
+    fun dismissBrowserSettings() = _uiState.update { it.copy(showBrowserSettings = false) }
+    fun toggleDesktopMode() = _uiState.update { it.copy(desktopMode = !it.desktopMode) }
+    fun toggleJavaScript() = _uiState.update { it.copy(javaScriptEnabled = !it.javaScriptEnabled) }
+    fun toggleLoadImages() = _uiState.update { it.copy(loadImages = !it.loadImages) }
+    fun toggleAdBlock() = _uiState.update { it.copy(adBlockEnabled = !it.adBlockEnabled) }
 }

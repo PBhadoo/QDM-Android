@@ -17,11 +17,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerValue
@@ -99,18 +102,30 @@ fun MainScreen(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
-                Text(
-                    text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(16.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "QDM for Android",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = { scope.launch { drawerState.close() } }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close menu")
+                    }
+                }
                 HorizontalDivider()
                 NavigationDrawerItem(
+                    icon = { Icon(Icons.Default.Download, contentDescription = null) },
                     label = { Text(stringResource(R.string.downloads)) },
                     selected = false,
                     onClick = { scope.launch { drawerState.close() } }
                 )
                 NavigationDrawerItem(
+                    icon = { Icon(Icons.Outlined.Language, contentDescription = null) },
                     label = { Text(stringResource(R.string.browser)) },
                     selected = false,
                     onClick = {
@@ -118,7 +133,9 @@ fun MainScreen(
                         onNavigateToBrowser("https://www.google.com")
                     }
                 )
+                HorizontalDivider()
                 NavigationDrawerItem(
+                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
                     label = { Text(stringResource(R.string.settings)) },
                     selected = false,
                     onClick = {

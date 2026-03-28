@@ -19,8 +19,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Switch
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -161,6 +164,11 @@ fun BrowserScreen(
                         )
                         HorizontalDivider()
                         DropdownMenuItem(
+                            text = { Text("Browser Settings") },
+                            leadingIcon = { Icon(Icons.Default.Settings, null) },
+                            onClick = { menuExpanded = false; viewModel.showBrowserSettings() }
+                        )
+                        DropdownMenuItem(
                             text = { Text("History") },
                             onClick = { menuExpanded = false; viewModel.showHistory() }
                         )
@@ -182,9 +190,22 @@ fun BrowserScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
+                LaunchedEffect(uiState.desktopMode) {
+                    webViewInstance?.settings?.userAgentString = if (uiState.desktopMode)
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+                    else
+                        null // reset to default mobile UA
+                    webViewInstance?.reload()
+                }
+                LaunchedEffect(uiState.javaScriptEnabled) {
+                    webViewInstance?.settings?.javaScriptEnabled = uiState.javaScriptEnabled
+                }
+                LaunchedEffect(uiState.loadImages) {
+                    webViewInstance?.settings?.loadsImagesAutomatically = uiState.loadImages
+                }
                 WebViewWrapper(
                     url = initialUrl,
-                    adBlockHosts = adBlockHosts,
+                    adBlockHosts = if (uiState.adBlockEnabled) adBlockHosts else emptySet(),
                     onMediaDetected = { url, headers -> viewModel.onMediaDetected(url, headers) },
                     onPageTitleChanged = { title -> viewModel.onPageFinished(uiState.currentUrl, title) },
                     onProgressChanged = viewModel::onProgressChanged,
@@ -212,6 +233,26 @@ fun BrowserScreen(
             onDismiss = { showDownloadDialog = false },
             onAdded = { showDownloadDialog = false },
             onStarted = { showDownloadDialog = false }
+        )
+    }
+
+    // Browser settings bottom sheet
+    if (uiState.showBrowserSettings) {
+        BrowserSettingsSheet(
+            uiState = uiState,
+            onDismiss = viewModel::dismissBrowserSettings,
+            onToggleDesktopMode = viewModel::toggleDesktopMode,
+            onToggleJavaScript = viewModel::toggleJavaScript,
+            onToggleLoadImages = viewModel::toggleLoadImages,
+            onToggleAdBlock = viewModel::toggleAdBlock,
+            onClearCookies = {
+                android.webkit.CookieManager.getInstance().removeAllCookies(null)
+                viewModel.dismissBrowserSettings()
+            },
+            onClearCache = {
+                webViewInstance?.clearCache(true)
+                viewModel.dismissBrowserSettings()
+            }
         )
     }
 
@@ -283,6 +324,102 @@ fun BrowserScreen(
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BrowserSettingsSheet(
+    uiState: BrowserUiState,
+    onDismiss: () -> Unit,
+    onToggleDesktopMode: () -> Unit,
+    onToggleJavaScript: () -> Unit,
+    onToggleLoadImages: () -> Unit,
+    onToggleAdBlock: () -> Unit,
+    onClearCookies: () -> Unit,
+    onClearCache: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Text(
+            "Browser Settings",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        HorizontalDivider()
+        BrowserSettingToggle(
+            title = "Desktop Mode",
+            subtitle = "Use desktop site layout",
+            icon = Icons.Default.DesktopWindows,
+            checked = uiState.desktopMode,
+            onCheckedChange = { onToggleDesktopMode() }
+        )
+        BrowserSettingToggle(
+            title = "JavaScript",
+            subtitle = "Enable JavaScript on pages",
+            checked = uiState.javaScriptEnabled,
+            onCheckedChange = { onToggleJavaScript() }
+        )
+        BrowserSettingToggle(
+            title = "Load Images",
+            subtitle = "Show images on pages",
+            checked = uiState.loadImages,
+            onCheckedChange = { onToggleLoadImages() }
+        )
+        BrowserSettingToggle(
+            title = "Ad Blocking",
+            subtitle = "Block ads using host list",
+            checked = uiState.adBlockEnabled,
+            onCheckedChange = { onToggleAdBlock() }
+        )
+        HorizontalDivider()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClearCookies)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+        ) {
+            Text("Clear Cookies", style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.error)
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClearCache)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+        ) {
+            Text("Clear Cache", style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.error)
+        }
+        Spacer(Modifier.padding(bottom = 16.dp))
+    }
+}
+
+@Composable
+private fun BrowserSettingToggle(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null,
+                modifier = Modifier.padding(end = 16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
