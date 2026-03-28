@@ -119,7 +119,7 @@ fun MainScreen(
             }
         ) { padding ->
             Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-                ScrollableTabRow(selectedTabIndex = uiState.activeTab.ordinal) {
+                ScrollableTabRow(selectedTabIndex = uiState.activeTab.ordinal, edgePadding = 0.dp) {
                     DownloadTab.values().forEachIndexed { index, tab ->
                         Tab(
                             selected = uiState.activeTab.ordinal == index,

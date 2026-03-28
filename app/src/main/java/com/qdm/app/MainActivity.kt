@@ -21,6 +21,7 @@ import com.qdm.app.presentation.screens.main.MainViewModel
 import com.qdm.app.presentation.theme.QdmTheme
 import com.qdm.app.utils.NetworkUtils
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -86,6 +87,9 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        var pendingUrl: String? = null
+        val pendingUrlFlow = MutableStateFlow<String?>(null)
+        var pendingUrl: String?
+            get() = pendingUrlFlow.value
+            set(value) { pendingUrlFlow.value = value }
     }
 }

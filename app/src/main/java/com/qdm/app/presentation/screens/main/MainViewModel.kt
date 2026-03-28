@@ -2,6 +2,7 @@ package com.qdm.app.presentation.screens.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.qdm.app.MainActivity
 import com.qdm.app.domain.engine.DownloadEngine
 import com.qdm.app.domain.model.DownloadState
 import com.qdm.app.domain.usecase.AddDownloadUseCase
@@ -14,6 +15,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -45,6 +48,13 @@ class MainViewModel @Inject constructor(
                 _uiState.update { it.copy(downloads = downloads) }
             }
         }
+        // Observe URLs coming from the browser or external intents
+        viewModelScope.launch {
+            MainActivity.pendingUrlFlow.filterNotNull().collect { url ->
+                showAddSheet(url)
+                MainActivity.pendingUrlFlow.value = null
+            }
+        }
     }
 
     fun selectTab(tab: DownloadTab) = _uiState.update { it.copy(activeTab = tab) }
@@ -69,10 +79,9 @@ class MainViewModel @Inject constructor(
 
     fun startDownload(downloadId: String) {
         viewModelScope.launch {
-            val item = getDownloads.execute().let { flow ->
-                // get the download item from the current list
-                _uiState.value.downloads.find { it.id == downloadId }
-            } ?: return@launch
+            // Use .first() to read directly from DB — avoids race where uiState
+            // hasn't yet been updated by the Room Flow after the insert.
+            val item = getDownloads.execute().first().find { it.id == downloadId } ?: return@launch
             downloadEngine.startDownload(downloadId, item, viewModelScope)
         }
     }
