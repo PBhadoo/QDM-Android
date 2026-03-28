@@ -1,3 +1,5 @@
+<div align="center">
+
 # QDM — Android Download Manager
 
 A fast, modern download manager for Android built with Jetpack Compose and Material 3.
@@ -5,6 +7,8 @@ A fast, modern download manager for Android built with Jetpack Compose and Mater
 [![Build & Sign APK](https://github.com/PBhadoo/QDM-Android/actions/workflows/build.yml/badge.svg)](https://github.com/PBhadoo/QDM-Android/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/PBhadoo/QDM-Android)](https://github.com/PBhadoo/QDM-Android/releases/latest)
 [![Min SDK](https://img.shields.io/badge/Android-8.0%2B-brightgreen)](https://android-arsenal.com/api?level=26)
+
+</div>
 
 ## Features
 
