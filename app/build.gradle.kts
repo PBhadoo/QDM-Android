@@ -1,19 +1,8 @@
-import org.gradle.jvm.toolchain.JvmVendorSpec
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
-}
-
-// KGP 2.x defaults to JetBrains JDK for its compiler daemon; override to
-// Adoptium so it uses the already-installed Temurin JDK without downloading.
-kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-        vendor.set(JvmVendorSpec.ADOPTIUM)
-    }
 }
 
 android {
