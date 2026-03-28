@@ -16,6 +16,8 @@ data class DownloadItem(
     val userAgent: String?,
     val customHeaders: Map<String, String>,
     val cookies: String?,
+    val username: String?,
+    val password: String?,
     val speedLimitBytesPerSec: Long,
     val addedAt: Long,
     val completedAt: Long?,

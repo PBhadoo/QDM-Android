@@ -49,6 +49,8 @@ data class DownloadEntity(
             userAgent = userAgent,
             customHeaders = customHeadersJson?.parseHeadersJson() ?: emptyMap(),
             cookies = cookies,
+            username = username,
+            password = password,
             speedLimitBytesPerSec = speedLimitBytesPerSec,
             addedAt = addedAt,
             completedAt = completedAt,
