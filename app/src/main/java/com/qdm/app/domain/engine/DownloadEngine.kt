@@ -2,10 +2,12 @@ package com.qdm.app.domain.engine
 
 import android.content.Context
 import android.net.Uri
+import android.provider.DocumentsContract
 import com.qdm.app.data.repository.DownloadRepository
 import com.qdm.app.domain.model.DownloadItem
 import com.qdm.app.domain.model.DownloadState
 import com.qdm.app.utils.FileUtils
+import com.qdm.app.utils.QdmLog
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +45,7 @@ class DownloadEngine @Inject constructor(
 
     fun startDownload(downloadId: String, item: DownloadItem, scope: CoroutineScope) {
         if (activeJobs.containsKey(downloadId)) return
+        QdmLog.i("DownloadEngine", "startDownload id=$downloadId url=${item.url} threads=${item.threadCount}")
 
         val job = scope.launch(Dispatchers.IO) {
             try {
@@ -51,11 +54,14 @@ class DownloadEngine @Inject constructor(
 
                 // Resolve file output
                 val fileUri = resolveOutputUri(item) ?: run {
+                    QdmLog.e("DownloadEngine", "resolveOutputUri returned null for savePath='${item.savePath}'")
                     fail(downloadId, "Cannot create output file")
                     return@launch
                 }
+                QdmLog.d("DownloadEngine", "Output URI resolved: $fileUri")
 
                 val pfd = FileUtils.openFileDescriptorForWrite(context, fileUri) ?: run {
+                    QdmLog.e("DownloadEngine", "openFileDescriptorForWrite returned null for $fileUri")
                     fail(downloadId, "Cannot open file for writing")
                     return@launch
                 }
@@ -125,9 +131,11 @@ class DownloadEngine @Inject constructor(
                     FileUtils.markFileDownloadComplete(context, fileUri)
                     repository.markCompleted(downloadId)
                     updateState(downloadId, DownloadState.Completed)
+                    QdmLog.i("DownloadEngine", "Completed id=$downloadId")
                 }
             } catch (e: Exception) {
                 if (activeJobs.containsKey(downloadId)) {
+                    QdmLog.e("DownloadEngine", "Failed id=$downloadId: ${e.message}", e)
                     fail(downloadId, e.message ?: "Download failed")
                 }
             } finally {
@@ -156,14 +164,22 @@ class DownloadEngine @Inject constructor(
     }
 
     private fun resolveOutputUri(item: DownloadItem): Uri? {
-        return when {
-            item.savePath.startsWith("content://") -> Uri.parse(item.savePath)
-            item.savePath.isNotEmpty() -> {
-                val treeUri = Uri.parse(item.savePath)
-                FileUtils.createDocumentFile(context, treeUri, item.fileName, item.mimeType)
-                    ?: FileUtils.createFileInDownloads(context, item.fileName, item.mimeType)
-            }
-            else -> FileUtils.createFileInDownloads(context, item.fileName, item.mimeType)
+        val savePath = item.savePath
+        if (savePath.isBlank()) {
+            QdmLog.d("DownloadEngine", "No savePath — using default Downloads/QDM/${FileUtils.categoryFolder(item.mimeType)}/")
+            return FileUtils.createFileForDownload(context, item.fileName, item.mimeType)
+        }
+
+        val uri = Uri.parse(savePath)
+        return if (savePath.startsWith("content://") && !DocumentsContract.isTreeUri(uri)) {
+            // Already a specific document URI (e.g. previously saved MediaStore entry)
+            QdmLog.d("DownloadEngine", "Using existing document URI: $uri")
+            uri
+        } else {
+            // SAF tree URI — must create a child document inside it
+            QdmLog.d("DownloadEngine", "SAF tree URI — creating child document in $uri")
+            FileUtils.createDocumentFile(context, uri, item.fileName, item.mimeType)
+                ?: FileUtils.createFileForDownload(context, item.fileName, item.mimeType)
         }
     }
 

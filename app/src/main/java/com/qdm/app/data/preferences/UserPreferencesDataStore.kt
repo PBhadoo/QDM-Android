@@ -26,6 +26,7 @@ class UserPreferencesDataStore @Inject constructor(
 ) {
     private object Keys {
         val SAVE_PATH = stringPreferencesKey("save_path")
+        val FOLDER_SETUP_DONE = booleanPreferencesKey("folder_setup_done")
         val THREAD_COUNT = intPreferencesKey("thread_count")
         val MAX_CONCURRENT = intPreferencesKey("max_concurrent")
         val SPEED_LIMIT = longPreferencesKey("speed_limit")
@@ -88,4 +89,12 @@ class UserPreferencesDataStore @Inject constructor(
 
     suspend fun updateLanguage(tag: String) =
         context.dataStore.edit { it[Keys.LANGUAGE] = tag }
+
+    fun isFolderSetupDoneFlow(): kotlinx.coroutines.flow.Flow<Boolean> =
+        context.dataStore.data
+            .catch { if (it is IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw it }
+            .map { it[Keys.FOLDER_SETUP_DONE] ?: false }
+
+    suspend fun markFolderSetupDone() =
+        context.dataStore.edit { it[Keys.FOLDER_SETUP_DONE] = true }
 }

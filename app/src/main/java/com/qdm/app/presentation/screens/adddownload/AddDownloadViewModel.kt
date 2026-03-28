@@ -7,6 +7,7 @@ import com.qdm.app.domain.model.AddDownloadRequest
 import com.qdm.app.domain.usecase.AddDownloadUseCase
 import com.qdm.app.domain.usecase.FetchFileMetadataUseCase
 import com.qdm.app.utils.FileUtils
+import com.qdm.app.utils.QdmLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,7 +47,7 @@ class AddDownloadViewModel @Inject constructor(
     fun fetchInfo() {
         val url = _uiState.value.url.trim()
         if (url.isBlank()) return
-
+        QdmLog.d("AddDownloadVM", "fetchInfo url=$url")
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             val headers = mutableMapOf<String, String>()
@@ -54,6 +55,7 @@ class AddDownloadViewModel @Inject constructor(
             _uiState.value.cookies.takeIf { it.isNotBlank() }?.let { headers["Cookie"] = it }
 
             fetchMetadata.execute(url, headers).onSuccess { meta ->
+                QdmLog.i("AddDownloadVM", "Meta: file=${meta.fileName} size=${meta.totalBytes} mime=${meta.mimeType} ranges=${meta.supportsRanges}")
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -65,6 +67,7 @@ class AddDownloadViewModel @Inject constructor(
                     )
                 }
             }.onFailure { e ->
+                QdmLog.e("AddDownloadVM", "fetchInfo failed: ${e.message}", e)
                 _uiState.update { it.copy(isLoading = false, error = e.message ?: "Failed to fetch info") }
             }
         }
@@ -95,6 +98,7 @@ class AddDownloadViewModel @Inject constructor(
                 scheduledAt = state.scheduledAt
             )
             val id = addDownload.execute(request)
+            QdmLog.i("AddDownloadVM", "Enqueued id=$id file=${request.fileName} savePath=${request.savePath.ifBlank { "<default>" }}")
             onStarted(id)
         }
     }

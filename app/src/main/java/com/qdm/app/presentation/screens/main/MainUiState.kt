@@ -10,7 +10,8 @@ data class MainUiState(
     val isSearchActive: Boolean = false,
     val searchQuery: String = "",
     val showAddSheet: Boolean = false,
-    val prefillUrl: String = ""
+    val prefillUrl: String = "",
+    val showFolderSetupDialog: Boolean = false
 ) {
     val filteredDownloads: List<DownloadItem>
         get() {

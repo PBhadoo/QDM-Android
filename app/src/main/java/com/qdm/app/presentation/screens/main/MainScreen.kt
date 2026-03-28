@@ -2,6 +2,9 @@ package com.qdm.app.presentation.screens.main
 
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -25,6 +29,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -54,6 +59,18 @@ fun MainScreen(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        uri?.let {
+            context.contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+            viewModel.onFolderSetupCustomPicked(it.toString())
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -160,6 +177,33 @@ fun MainScreen(
                 }
             }
         }
+    }
+
+    if (uiState.showFolderSetupDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissFolderSetupDialog() },
+            title = { Text("Set Download Folder") },
+            text = {
+                Text(
+                    "Downloads will be organized into:\n\n" +
+                    "Download/QDM/Videos/\n" +
+                    "Download/QDM/Music/\n" +
+                    "Download/QDM/Documents/\n" +
+                    "Download/QDM/Other/\n\n" +
+                    "Use the default or choose a custom folder."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.onFolderSetupUseDefault() }) {
+                    Text("Use Default")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { folderPickerLauncher.launch(null) }) {
+                    Text("Choose Custom")
+                }
+            }
+        )
     }
 
     if (uiState.showAddSheet) {

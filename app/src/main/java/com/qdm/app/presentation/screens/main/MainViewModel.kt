@@ -3,6 +3,7 @@ package com.qdm.app.presentation.screens.main
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qdm.app.MainActivity
+import com.qdm.app.data.preferences.UserPreferencesDataStore
 import com.qdm.app.domain.engine.DownloadEngine
 import com.qdm.app.domain.model.DownloadState
 import com.qdm.app.domain.usecase.AddDownloadUseCase
@@ -10,6 +11,7 @@ import com.qdm.app.domain.usecase.CancelDownloadUseCase
 import com.qdm.app.domain.usecase.GetDownloadsUseCase
 import com.qdm.app.domain.usecase.PauseDownloadUseCase
 import com.qdm.app.domain.usecase.ResumeDownloadUseCase
+import com.qdm.app.utils.QdmLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +30,8 @@ class MainViewModel @Inject constructor(
     private val resumeDownload: ResumeDownloadUseCase,
     private val cancelDownload: CancelDownloadUseCase,
     private val addDownload: AddDownloadUseCase,
-    private val downloadEngine: DownloadEngine
+    private val downloadEngine: DownloadEngine,
+    private val prefs: UserPreferencesDataStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -51,10 +54,44 @@ class MainViewModel @Inject constructor(
         // Observe URLs coming from the browser or external intents
         viewModelScope.launch {
             MainActivity.pendingUrlFlow.filterNotNull().collect { url ->
+                QdmLog.i("MainViewModel", "External URL received: $url")
                 showAddSheet(url)
                 MainActivity.pendingUrlFlow.value = null
             }
         }
+        // Show folder setup dialog on first launch (when setup not yet acknowledged)
+        viewModelScope.launch {
+            prefs.isFolderSetupDoneFlow().first().let { done ->
+                if (!done) {
+                    QdmLog.i("MainViewModel", "Folder not configured — showing setup dialog")
+                    _uiState.update { it.copy(showFolderSetupDialog = true) }
+                }
+            }
+        }
+    }
+
+    /** User chose "Use Default" — no custom path needed, Downloads/QDM/{category} used automatically. */
+    fun onFolderSetupUseDefault() {
+        viewModelScope.launch {
+            prefs.markFolderSetupDone()
+            QdmLog.i("MainViewModel", "Folder setup: using default Downloads/QDM/")
+            _uiState.update { it.copy(showFolderSetupDialog = false) }
+        }
+    }
+
+    /** User chose a custom SAF folder. */
+    fun onFolderSetupCustomPicked(uriString: String) {
+        viewModelScope.launch {
+            prefs.updateDefaultSavePath(uriString)
+            prefs.markFolderSetupDone()
+            QdmLog.i("MainViewModel", "Folder setup: custom path=$uriString")
+            _uiState.update { it.copy(showFolderSetupDialog = false) }
+        }
+    }
+
+    fun dismissFolderSetupDialog() {
+        // Dismissed without picking — show again next time (setup not marked done)
+        _uiState.update { it.copy(showFolderSetupDialog = false) }
     }
 
     fun selectTab(tab: DownloadTab) = _uiState.update { it.copy(activeTab = tab) }

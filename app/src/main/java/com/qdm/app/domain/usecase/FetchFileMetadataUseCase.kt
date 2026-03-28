@@ -3,6 +3,7 @@ package com.qdm.app.domain.usecase
 import com.qdm.app.domain.model.FileMetadata
 import com.qdm.app.utils.FileUtils
 import com.qdm.app.utils.MimeTypeHelper
+import com.qdm.app.utils.QdmLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -16,6 +17,7 @@ class FetchFileMetadataUseCase @Inject constructor(
         url: String,
         headers: Map<String, String> = emptyMap()
     ): Result<FileMetadata> = withContext(Dispatchers.IO) {
+        QdmLog.d("FetchMetadata", "Fetching: $url")
         runCatching {
             val requestBuilder = Request.Builder().url(url)
             headers.forEach { (k, v) -> requestBuilder.header(k, v) }
@@ -29,6 +31,7 @@ class FetchFileMetadataUseCase @Inject constructor(
             }
 
             headResponse.use { resp ->
+                QdmLog.d("FetchMetadata", "HEAD ${resp.code} size=${resp.header("Content-Length")} ranges=${resp.header("Accept-Ranges")}")
                 val totalBytes = resp.header("Content-Length")?.toLongOrNull() ?: -1L
                 val contentDisposition = resp.header("Content-Disposition")
                 val contentType = resp.header("Content-Type")
