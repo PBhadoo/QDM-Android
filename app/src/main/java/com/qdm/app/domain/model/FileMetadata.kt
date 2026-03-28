@@ -1,4 +1,4 @@
-package com.qdm.app.domain.model
+package com.parveenbhadoo.qdm.domain.model
 
 data class FileMetadata(
     val totalBytes: Long,

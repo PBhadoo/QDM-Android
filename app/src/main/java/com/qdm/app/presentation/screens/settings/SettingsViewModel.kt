@@ -1,4 +1,4 @@
-package com.qdm.app.presentation.screens.settings
+package com.parveenbhadoo.qdm.presentation.screens.settings
 
 import android.content.Context
 import android.os.Build
@@ -6,15 +6,29 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.qdm.app.data.repository.SettingsRepository
-import com.qdm.app.domain.model.AppSettings
+import com.parveenbhadoo.qdm.data.repository.SettingsRepository
+import com.parveenbhadoo.qdm.domain.model.AppSettings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 import javax.inject.Inject
+
+sealed class UpdateCheckState {
+    object Idle : UpdateCheckState()
+    object Checking : UpdateCheckState()
+    data class UpToDate(val version: String) : UpdateCheckState()
+    data class UpdateAvailable(val version: String, val url: String) : UpdateCheckState()
+    object Failed : UpdateCheckState()
+}
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -24,6 +38,38 @@ class SettingsViewModel @Inject constructor(
 
     val settings: StateFlow<AppSettings> = settingsRepository.settingsFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppSettings())
+
+    private val _updateState = MutableStateFlow<UpdateCheckState>(UpdateCheckState.Idle)
+    val updateState: StateFlow<UpdateCheckState> = _updateState.asStateFlow()
+
+    fun checkForUpdates() {
+        viewModelScope.launch {
+            _updateState.value = UpdateCheckState.Checking
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    val conn = URL("https://api.github.com/repos/PBhadoo/QDM-Android/releases/latest")
+                        .openConnection() as HttpURLConnection
+                    conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
+                    conn.connectTimeout = 10_000
+                    conn.readTimeout = 10_000
+                    conn.connect()
+                    conn.inputStream.bufferedReader().readText().also { conn.disconnect() }
+                }
+            }.onSuccess { json ->
+                val tagName = json.substringAfter("\"tag_name\":\"", "").substringBefore("\"").trim()
+                val htmlUrl = json.substringAfter("\"html_url\":\"", "").substringBefore("\"").trim()
+                val currentVersion = "v" + context.packageManager
+                    .getPackageInfo(context.packageName, 0).versionName
+                _updateState.value = when {
+                    tagName.isBlank() -> UpdateCheckState.Failed
+                    tagName == currentVersion -> UpdateCheckState.UpToDate(currentVersion)
+                    else -> UpdateCheckState.UpdateAvailable(tagName, htmlUrl)
+                }
+            }.onFailure {
+                _updateState.value = UpdateCheckState.Failed
+            }
+        }
+    }
 
     fun updateSavePath(uri: String) = viewModelScope.launch {
         settingsRepository.updateDefaultSavePath(uri)

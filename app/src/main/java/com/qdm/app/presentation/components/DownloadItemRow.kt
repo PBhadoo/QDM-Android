@@ -1,4 +1,4 @@
-package com.qdm.app.presentation.components
+package com.parveenbhadoo.qdm.presentation.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.VideoFile
@@ -30,17 +30,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.qdm.app.R
-import com.qdm.app.domain.model.DownloadItem
-import com.qdm.app.domain.model.DownloadState
-import com.qdm.app.utils.MimeTypeHelper
+import com.parveenbhadoo.qdm.R
+import com.parveenbhadoo.qdm.domain.model.DownloadItem
+import com.parveenbhadoo.qdm.domain.model.DownloadState
+import com.parveenbhadoo.qdm.utils.FormatUtils
+import com.parveenbhadoo.qdm.utils.MimeTypeHelper
+
+private val ColorCompleted = Color(0xFF4CAF50)
+private val ColorPaused = Color(0xFFFF9800)
 
 @Composable
 fun DownloadItemRow(
     item: DownloadItem,
+    onStart: () -> Unit,
     onPause: () -> Unit,
     onResume: () -> Unit,
     onCancel: () -> Unit,
@@ -52,28 +60,50 @@ fun DownloadItemRow(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    Surface(modifier = modifier.fillMaxWidth()) {
+    val borderColor = when (item.state) {
+        is DownloadState.Completed -> ColorCompleted
+        is DownloadState.Error -> MaterialTheme.colorScheme.error
+        is DownloadState.Paused -> ColorPaused
+        is DownloadState.Downloading, is DownloadState.Connecting -> MaterialTheme.colorScheme.primary
+        else -> Color.Transparent
+    }
+    val iconTint = if (borderColor == Color.Transparent) MaterialTheme.colorScheme.primary else borderColor
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .drawBehind {
+                drawRect(color = borderColor, size = Size(4.dp.toPx(), size.height))
+            }
+    ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = mimeIcon(item.mimeType),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = iconTint,
                 modifier = Modifier.size(32.dp)
             )
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.fileName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                // Filename + resume badge
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = item.fileName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    ResumeBadge(supportsRanges = item.supportsRanges)
+                }
+                // Size / progress below filename
+                SizeProgressText(item)
                 Spacer(Modifier.height(2.dp))
                 StateRow(item = item)
-
                 if (item.state is DownloadState.Downloading || item.state is DownloadState.Paused) {
                     Spacer(Modifier.height(4.dp))
                     LinearProgressIndicator(
@@ -92,6 +122,16 @@ fun DownloadItemRow(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.action_pause)) },
                             onClick = { menuExpanded = false; onPause() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.action_cancel)) },
+                            onClick = { menuExpanded = false; onCancel() }
+                        )
+                    }
+                    is DownloadState.Pending -> {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.action_start)) },
+                            onClick = { menuExpanded = false; onStart() }
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.action_cancel)) },
@@ -134,6 +174,39 @@ fun DownloadItemRow(
 }
 
 @Composable
+private fun ResumeBadge(supportsRanges: Boolean) {
+    val (yesNo, color) = if (supportsRanges)
+        stringResource(R.string.resume_yes) to ColorCompleted
+    else
+        stringResource(R.string.resume_no) to MaterialTheme.colorScheme.outline
+    Text(
+        text = "(Resume: $yesNo)",
+        style = MaterialTheme.typography.labelSmall,
+        color = color
+    )
+}
+
+@Composable
+private fun SizeProgressText(item: DownloadItem) {
+    val text = when {
+        item.state is DownloadState.Completed && item.totalBytes > 0 ->
+            FormatUtils.formatBytes(item.totalBytes)
+        item.totalBytes > 0 && item.downloadedBytes > 0 -> {
+            val pct = (item.progress * 100).toInt()
+            "${FormatUtils.formatBytes(item.downloadedBytes)} / ${FormatUtils.formatBytes(item.totalBytes)} ($pct%)"
+        }
+        item.totalBytes > 0 -> FormatUtils.formatBytes(item.totalBytes)
+        item.downloadedBytes > 0 -> FormatUtils.formatBytes(item.downloadedBytes)
+        else -> return
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
+@Composable
 private fun StateRow(item: DownloadItem) {
     when (val state = item.state) {
         is DownloadState.Downloading -> SpeedEtaText(
@@ -142,15 +215,20 @@ private fun StateRow(item: DownloadItem) {
             downloadedBytes = state.downloadedBytes,
             totalBytes = state.totalBytes
         )
+        is DownloadState.Connecting -> Text(
+            text = stringResource(R.string.state_connecting),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary
+        )
         is DownloadState.Paused -> Text(
             text = stringResource(R.string.state_paused),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.secondary
+            color = ColorPaused
         )
         is DownloadState.Completed -> Text(
             text = stringResource(R.string.state_completed),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.tertiary
+            color = ColorCompleted
         )
         is DownloadState.Error -> Text(
             text = state.message,
@@ -177,5 +255,5 @@ private fun mimeIcon(mimeType: String) = when {
     MimeTypeHelper.isAudio(mimeType) -> Icons.Default.AudioFile
     MimeTypeHelper.isImage(mimeType) -> Icons.Default.Image
     MimeTypeHelper.isPdf(mimeType) -> Icons.Default.PictureAsPdf
-    else -> Icons.Default.InsertDriveFile
+    else -> Icons.AutoMirrored.Filled.InsertDriveFile
 }

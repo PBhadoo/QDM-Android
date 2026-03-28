@@ -1,10 +1,10 @@
-package com.qdm.app.data.local.dao
+package com.parveenbhadoo.qdm.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.qdm.app.data.local.entity.ScheduledDownloadEntity
+import com.parveenbhadoo.qdm.data.local.entity.ScheduledDownloadEntity
 
 @Dao
 interface ScheduledDownloadDao {

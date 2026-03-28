@@ -1,4 +1,4 @@
-package com.qdm.app.data.remote.interceptors
+package com.parveenbhadoo.qdm.data.remote.interceptors
 
 import okhttp3.Cookie
 import okhttp3.CookieJar

@@ -1,11 +1,11 @@
-package com.qdm.app.di
+package com.parveenbhadoo.qdm.di
 
 import android.content.Context
 import androidx.room.Room
-import com.qdm.app.data.local.QdmDatabase
-import com.qdm.app.data.local.dao.BrowserHistoryDao
-import com.qdm.app.data.local.dao.DownloadDao
-import com.qdm.app.data.local.dao.ScheduledDownloadDao
+import com.parveenbhadoo.qdm.data.local.QdmDatabase
+import com.parveenbhadoo.qdm.data.local.dao.BrowserHistoryDao
+import com.parveenbhadoo.qdm.data.local.dao.DownloadDao
+import com.parveenbhadoo.qdm.data.local.dao.ScheduledDownloadDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -21,7 +21,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): QdmDatabase =
         Room.databaseBuilder(context, QdmDatabase::class.java, "qdm.db")
-            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
 
     @Provides

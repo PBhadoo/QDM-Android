@@ -1,8 +1,8 @@
-package com.qdm.app.domain.usecase
+package com.parveenbhadoo.qdm.domain.usecase
 
 import android.content.Context
 import android.content.Intent
-import com.qdm.app.service.DownloadService
+import com.parveenbhadoo.qdm.service.DownloadService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 

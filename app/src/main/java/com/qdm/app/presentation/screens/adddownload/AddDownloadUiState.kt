@@ -1,4 +1,4 @@
-package com.qdm.app.presentation.screens.adddownload
+package com.parveenbhadoo.qdm.presentation.screens.adddownload
 
 data class AddDownloadUiState(
     val url: String = "",
@@ -17,5 +17,6 @@ data class AddDownloadUiState(
     val isLoading: Boolean = false,
     val isFetched: Boolean = false,
     val error: String? = null,
-    val cookies: String = ""
+    val cookies: String = "",
+    val supportsRanges: Boolean = false
 )

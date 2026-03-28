@@ -1,12 +1,13 @@
-package com.qdm.app.service
+package com.parveenbhadoo.qdm.service
 
 import android.content.Intent
 import android.net.wifi.WifiManager
+import android.os.Build
 import android.os.PowerManager
 import androidx.lifecycle.lifecycleScope
-import com.qdm.app.data.repository.DownloadRepository
-import com.qdm.app.domain.engine.DownloadEngine
-import com.qdm.app.domain.model.DownloadState
+import com.parveenbhadoo.qdm.data.repository.DownloadRepository
+import com.parveenbhadoo.qdm.domain.engine.DownloadEngine
+import com.parveenbhadoo.qdm.domain.model.DownloadState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -16,10 +17,10 @@ import javax.inject.Inject
 class DownloadService : androidx.lifecycle.LifecycleService() {
 
     companion object {
-        const val ACTION_START = "com.qdm.app.ACTION_START"
-        const val ACTION_PAUSE = "com.qdm.app.ACTION_PAUSE"
-        const val ACTION_RESUME = "com.qdm.app.ACTION_RESUME"
-        const val ACTION_CANCEL = "com.qdm.app.ACTION_CANCEL"
+        const val ACTION_START = "com.parveenbhadoo.qdm.ACTION_START"
+        const val ACTION_PAUSE = "com.parveenbhadoo.qdm.ACTION_PAUSE"
+        const val ACTION_RESUME = "com.parveenbhadoo.qdm.ACTION_RESUME"
+        const val ACTION_CANCEL = "com.parveenbhadoo.qdm.ACTION_CANCEL"
         const val EXTRA_DOWNLOAD_ID = "download_id"
         private const val NOTIFICATION_ID = 1
     }
@@ -127,10 +128,11 @@ class DownloadService : androidx.lifecycle.LifecycleService() {
         ).also { it.acquire(10 * 60 * 60 * 1000L) } // 10 hours max
 
         val wm = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
-        wifiLock = wm.createWifiLock(
-            WifiManager.WIFI_MODE_FULL_HIGH_PERF,
-            "QDM::DownloadWifiLock"
-        ).also { it.acquire() }
+        val wifiLockMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+            WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+        else
+            @Suppress("DEPRECATION") WifiManager.WIFI_MODE_FULL_HIGH_PERF
+        wifiLock = wm.createWifiLock(wifiLockMode, "QDM::DownloadWifiLock").also { it.acquire() }
     }
 
     private fun releaseWakeLocks() {

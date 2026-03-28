@@ -1,4 +1,4 @@
-package com.qdm.app
+package com.parveenbhadoo.qdm
 
 import android.app.Application
 import android.app.NotificationChannel
@@ -6,7 +6,7 @@ import android.app.NotificationManager
 import android.os.Build
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import com.qdm.app.service.DownloadNotificationManager
+import com.parveenbhadoo.qdm.service.DownloadNotificationManager
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 

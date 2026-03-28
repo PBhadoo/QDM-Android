@@ -1,4 +1,4 @@
-package com.qdm.app.domain.engine
+package com.parveenbhadoo.qdm.domain.engine
 
 import kotlinx.coroutines.isActive
 import okhttp3.OkHttpClient

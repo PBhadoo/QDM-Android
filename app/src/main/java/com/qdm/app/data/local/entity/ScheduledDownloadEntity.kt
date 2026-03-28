@@ -1,4 +1,4 @@
-package com.qdm.app.data.local.entity
+package com.parveenbhadoo.qdm.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

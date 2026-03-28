@@ -1,8 +1,10 @@
-package com.qdm.app.presentation.screens.settings
+package com.parveenbhadoo.qdm.presentation.screens.settings
 
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,13 +30,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.qdm.app.R
-import com.qdm.app.utils.FormatUtils
+import com.parveenbhadoo.qdm.R
+import com.parveenbhadoo.qdm.utils.FormatUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +47,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val updateState by viewModel.updateState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     val folderLauncher = rememberLauncherForActivityResult(
@@ -78,9 +83,14 @@ fun SettingsScreen(
             // Downloads section
             SectionHeader(stringResource(R.string.section_downloads))
 
+            val folderSubtitle = when {
+                settings.defaultSavePath.isNotBlank() -> settings.defaultSavePath
+                settings.folderSetupDone -> "Downloads/QDM/ (default)"
+                else -> stringResource(R.string.not_set)
+            }
             SettingItem(
                 title = stringResource(R.string.default_save_folder),
-                subtitle = settings.defaultSavePath.ifBlank { stringResource(R.string.not_set) },
+                subtitle = folderSubtitle,
                 onClick = { folderLauncher.launch(null) }
             )
 
@@ -160,8 +170,50 @@ fun SettingsScreen(
 
             SettingItem(
                 title = stringResource(R.string.version),
-                subtitle = "1.0.0"
+                subtitle = context.packageManager.getPackageInfo(context.packageName, 0).versionName
             )
+
+            // Check for Updates
+            val updateSubtitle = when (val s = updateState) {
+                is UpdateCheckState.Idle -> "Tap to check"
+                is UpdateCheckState.Checking -> stringResource(R.string.update_checking)
+                is UpdateCheckState.UpToDate -> stringResource(R.string.update_up_to_date, s.version)
+                is UpdateCheckState.UpdateAvailable -> stringResource(R.string.update_available, s.version)
+                is UpdateCheckState.Failed -> stringResource(R.string.update_failed)
+            }
+            val updateClick: (() -> Unit) = when (val s = updateState) {
+                is UpdateCheckState.UpdateAvailable -> {
+                    { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(s.url))) }
+                }
+                is UpdateCheckState.Checking -> ({})
+                else -> ({ viewModel.checkForUpdates() })
+            }
+            SettingItem(
+                title = stringResource(R.string.check_for_updates),
+                subtitle = updateSubtitle,
+                subtitleColor = when (updateState) {
+                    is UpdateCheckState.UpdateAvailable -> Color(0xFF4CAF50)
+                    is UpdateCheckState.Failed -> MaterialTheme.colorScheme.error
+                    else -> null
+                },
+                onClick = updateClick
+            )
+
+            // Made with love
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = stringResource(R.string.made_with_love),
+                    style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
@@ -180,20 +232,21 @@ private fun SectionHeader(title: String) {
 private fun SettingItem(
     title: String,
     subtitle: String? = null,
+    subtitleColor: Color? = null,
     onClick: (() -> Unit)? = null
 ) {
-    val modifier = if (onClick != null)
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
-    else
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
-
-    Column(modifier = modifier) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
         Text(text = title, style = MaterialTheme.typography.bodyLarge)
         subtitle?.let {
             Text(
                 text = it,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = subtitleColor ?: MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

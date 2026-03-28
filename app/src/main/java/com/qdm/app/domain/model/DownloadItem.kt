@@ -1,4 +1,4 @@
-package com.qdm.app.domain.model
+package com.parveenbhadoo.qdm.domain.model
 
 data class DownloadItem(
     val id: String,
@@ -22,7 +22,8 @@ data class DownloadItem(
     val addedAt: Long,
     val completedAt: Long?,
     val errorMessage: String?,
-    val scheduledAt: Long?
+    val scheduledAt: Long?,
+    val supportsRanges: Boolean = false
 ) {
     val progress: Float
         get() = if (totalBytes > 0) downloadedBytes.toFloat() / totalBytes else 0f

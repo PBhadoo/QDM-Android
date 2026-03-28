@@ -1,10 +1,10 @@
-package com.qdm.app.data.repository
+package com.parveenbhadoo.qdm.data.repository
 
-import com.qdm.app.data.local.dao.DownloadDao
-import com.qdm.app.data.local.entity.DownloadEntity
-import com.qdm.app.domain.model.AddDownloadRequest
-import com.qdm.app.domain.model.DownloadItem
-import com.qdm.app.domain.model.DownloadState
+import com.parveenbhadoo.qdm.data.local.dao.DownloadDao
+import com.parveenbhadoo.qdm.data.local.entity.DownloadEntity
+import com.parveenbhadoo.qdm.domain.model.AddDownloadRequest
+import com.parveenbhadoo.qdm.domain.model.DownloadItem
+import com.parveenbhadoo.qdm.domain.model.DownloadState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.UUID
@@ -46,7 +46,8 @@ class DownloadRepository @Inject constructor(
                 addedAt = System.currentTimeMillis(),
                 completedAt = null,
                 errorMessage = null,
-                scheduledAt = request.scheduledAt
+                scheduledAt = request.scheduledAt,
+                supportsRanges = request.supportsRanges
             )
         )
         return id

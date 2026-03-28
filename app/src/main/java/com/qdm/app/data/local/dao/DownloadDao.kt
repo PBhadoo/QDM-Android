@@ -1,11 +1,11 @@
-package com.qdm.app.data.local.dao
+package com.parveenbhadoo.qdm.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.qdm.app.data.local.entity.DownloadEntity
+import com.parveenbhadoo.qdm.data.local.entity.DownloadEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -40,6 +40,6 @@ interface DownloadDao {
     @Query("SELECT COUNT(*) FROM downloads WHERE stateName = 'Downloading'")
     suspend fun getActiveDownloadCount(): Int
 
-    @Query("SELECT * FROM downloads WHERE stateName IN ('Pending', 'Paused', 'Downloading') ORDER BY addedAt ASC")
+    @Query("SELECT * FROM downloads WHERE stateName IN ('Pending', 'Paused', 'Downloading', 'Connecting') ORDER BY addedAt ASC")
     suspend fun getPendingDownloads(): List<DownloadEntity>
 }

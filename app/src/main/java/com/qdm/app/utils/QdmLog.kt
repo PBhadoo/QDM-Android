@@ -1,4 +1,4 @@
-package com.qdm.app.utils
+package com.parveenbhadoo.qdm.utils
 
 import android.util.Log
 

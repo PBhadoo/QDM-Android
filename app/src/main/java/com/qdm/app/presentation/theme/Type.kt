@@ -1,4 +1,4 @@
-package com.qdm.app.presentation.theme
+package com.parveenbhadoo.qdm.presentation.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

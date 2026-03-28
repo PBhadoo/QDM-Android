@@ -1,4 +1,4 @@
-package com.qdm.app.domain.model
+package com.parveenbhadoo.qdm.domain.model
 
 sealed class DownloadState {
     object Pending : DownloadState()

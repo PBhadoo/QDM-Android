@@ -1,9 +1,9 @@
-package com.qdm.app.domain.usecase
+package com.parveenbhadoo.qdm.domain.usecase
 
-import com.qdm.app.domain.model.FileMetadata
-import com.qdm.app.utils.FileUtils
-import com.qdm.app.utils.MimeTypeHelper
-import com.qdm.app.utils.QdmLog
+import com.parveenbhadoo.qdm.domain.model.FileMetadata
+import com.parveenbhadoo.qdm.utils.FileUtils
+import com.parveenbhadoo.qdm.utils.MimeTypeHelper
+import com.parveenbhadoo.qdm.utils.QdmLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient

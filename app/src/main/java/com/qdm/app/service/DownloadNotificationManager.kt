@@ -1,4 +1,4 @@
-package com.qdm.app.service
+package com.parveenbhadoo.qdm.service
 
 import android.app.Notification
 import android.app.NotificationManager
@@ -6,10 +6,10 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
-import com.qdm.app.MainActivity
-import com.qdm.app.R
-import com.qdm.app.domain.model.DownloadItem
-import com.qdm.app.utils.FormatUtils
+import com.parveenbhadoo.qdm.MainActivity
+import com.parveenbhadoo.qdm.R
+import com.parveenbhadoo.qdm.domain.model.DownloadItem
+import com.parveenbhadoo.qdm.utils.FormatUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton

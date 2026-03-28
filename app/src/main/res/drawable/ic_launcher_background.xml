@@ -1,10 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#1565C0"
-        android:pathData="M0,0h108v108h-108z" />
+
+    <!-- Deep indigo-to-teal diagonal gradient -->
+    <path android:pathData="M0,0 L108,0 L108,108 L0,108 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="108"
+                android:endY="108">
+                <item android:offset="0"   android:color="#1C0B3E" />
+                <item android:offset="0.45" android:color="#0E1D52" />
+                <item android:offset="1"   android:color="#062A3C" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Soft radial glow centred slightly above-middle (where the arrow lives) -->
+    <path android:pathData="M54,44 m-38,0 a38,38,0,1,0,76,0 a38,38,0,1,0,-76,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="44"
+                android:gradientRadius="38">
+                <item android:offset="0"   android:color="#553090" />
+                <item android:offset="0.5" android:color="#221060" />
+                <item android:offset="1"   android:color="#00000000" />
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>

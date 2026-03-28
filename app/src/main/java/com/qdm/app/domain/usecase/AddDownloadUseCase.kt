@@ -1,7 +1,7 @@
-package com.qdm.app.domain.usecase
+package com.parveenbhadoo.qdm.domain.usecase
 
-import com.qdm.app.data.repository.DownloadRepository
-import com.qdm.app.domain.model.AddDownloadRequest
+import com.parveenbhadoo.qdm.data.repository.DownloadRepository
+import com.parveenbhadoo.qdm.domain.model.AddDownloadRequest
 import javax.inject.Inject
 
 class AddDownloadUseCase @Inject constructor(

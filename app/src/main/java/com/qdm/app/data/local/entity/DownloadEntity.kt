@@ -1,9 +1,10 @@
-package com.qdm.app.data.local.entity
+package com.parveenbhadoo.qdm.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.qdm.app.domain.model.DownloadItem
-import com.qdm.app.domain.model.DownloadState
+import com.parveenbhadoo.qdm.domain.model.DownloadItem
+import com.parveenbhadoo.qdm.domain.model.DownloadState
 
 @Entity(tableName = "downloads")
 data class DownloadEntity(
@@ -29,7 +30,9 @@ data class DownloadEntity(
     val completedAt: Long?,
     val errorMessage: String?,
     val scheduledAt: Long?,
-    val isQueued: Boolean = false
+    val isQueued: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val supportsRanges: Boolean = false
 ) {
     fun toDomainModel(liveState: DownloadState? = null): DownloadItem {
         val resolvedState = liveState ?: stateName.toDomainState(errorMessage, scheduledAt)
@@ -55,7 +58,8 @@ data class DownloadEntity(
             addedAt = addedAt,
             completedAt = completedAt,
             errorMessage = errorMessage,
-            scheduledAt = scheduledAt
+            scheduledAt = scheduledAt,
+            supportsRanges = supportsRanges
         )
     }
 }

@@ -1,7 +1,7 @@
-package com.qdm.app.data.repository
+package com.parveenbhadoo.qdm.data.repository
 
-import com.qdm.app.data.preferences.UserPreferencesDataStore
-import com.qdm.app.domain.model.AppSettings
+import com.parveenbhadoo.qdm.data.preferences.UserPreferencesDataStore
+import com.parveenbhadoo.qdm.domain.model.AppSettings
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton

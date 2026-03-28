@@ -1,7 +1,8 @@
-package com.qdm.app.presentation.screens.browser
+package com.parveenbhadoo.qdm.presentation.screens.browser
 
 import android.graphics.Bitmap
 import android.net.http.SslError
+import android.webkit.DownloadListener
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -15,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import com.parveenbhadoo.qdm.utils.QdmLog
 import java.io.ByteArrayInputStream
 
 @Composable
@@ -28,6 +30,7 @@ fun WebViewWrapper(
     onPageFinished: (String) -> Unit,
     onNavigationState: (canBack: Boolean, canForward: Boolean) -> Unit,
     onAdBlocked: () -> Unit,
+    onDownloadRequested: (url: String, headers: Map<String, String>, cookies: String) -> Unit,
     webViewRef: (WebView) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -44,13 +47,13 @@ fun WebViewWrapper(
                 setSupportZoom(true)
                 builtInZoomControls = true
                 displayZoomControls = false
-                userAgentString = userAgentString // keep default
             }
         }
     }
 
     DisposableEffect(webView) {
         webViewRef(webView)
+
         webView.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(
                 view: WebView,
@@ -61,9 +64,9 @@ fun WebViewWrapper(
                     onAdBlocked()
                     return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0)))
                 }
-
                 val urlStr = request.url.toString()
                 if (isMediaUrl(urlStr)) {
+                    QdmLog.d("WebView", "Media URL intercepted: $urlStr")
                     val headers = request.requestHeaders ?: emptyMap()
                     onMediaDetected(urlStr, headers)
                 }
@@ -83,18 +86,31 @@ fun WebViewWrapper(
             }
 
             override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
-                handler.cancel() // Strict SSL
+                handler.cancel()
             }
         }
 
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
                 onProgressChanged(newProgress)
+                onNavigationState(view.canGoBack(), view.canGoForward())
             }
             override fun onReceivedTitle(view: WebView, title: String) {
                 onPageTitleChanged(title)
             }
         }
+
+        // DownloadListener catches ALL server-initiated downloads:
+        // Content-Disposition: attachment, direct file links, etc.
+        // This is the primary mechanism — shouldInterceptRequest misses these.
+        webView.setDownloadListener(DownloadListener { downloadUrl, userAgent, contentDisposition, mimeType, contentLength ->
+            QdmLog.i("WebView", "DownloadListener fired: url=$downloadUrl mime=$mimeType size=$contentLength")
+            val cookies = android.webkit.CookieManager.getInstance().getCookie(downloadUrl) ?: ""
+            val headers = mutableMapOf<String, String>()
+            userAgent?.let { headers["User-Agent"] = it }
+            cookies.takeIf { it.isNotBlank() }?.let { headers["Cookie"] = it }
+            onDownloadRequested(downloadUrl, headers, cookies)
+        })
 
         webView.loadUrl(url)
 

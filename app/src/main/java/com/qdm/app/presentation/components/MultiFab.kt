@@ -1,4 +1,4 @@
-package com.qdm.app.presentation.components
+package com.parveenbhadoo.qdm.presentation.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -29,7 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.qdm.app.R
+import com.parveenbhadoo.qdm.R
 
 @Composable
 fun MultiFab(

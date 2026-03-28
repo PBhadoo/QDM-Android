@@ -1,7 +1,7 @@
-package com.qdm.app.data.repository
+package com.parveenbhadoo.qdm.data.repository
 
-import com.qdm.app.data.local.dao.BrowserHistoryDao
-import com.qdm.app.data.local.entity.BrowserHistoryEntity
+import com.parveenbhadoo.qdm.data.local.dao.BrowserHistoryDao
+import com.parveenbhadoo.qdm.data.local.entity.BrowserHistoryEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton

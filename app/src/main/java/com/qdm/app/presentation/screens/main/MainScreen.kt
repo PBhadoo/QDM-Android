@@ -1,10 +1,13 @@
-package com.qdm.app.presentation.screens.main
+package com.parveenbhadoo.qdm.presentation.screens.main
 
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,9 +15,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
@@ -35,18 +44,25 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.qdm.app.R
-import com.qdm.app.presentation.components.DownloadItemRow
-import com.qdm.app.presentation.components.MultiFab
-import com.qdm.app.presentation.screens.adddownload.AddDownloadSheet
-import com.qdm.app.utils.NetworkUtils
+import com.parveenbhadoo.qdm.R
+import com.parveenbhadoo.qdm.presentation.components.DownloadItemRow
+import com.parveenbhadoo.qdm.presentation.components.MultiFab
+import com.parveenbhadoo.qdm.presentation.screens.adddownload.AddDownloadSheet
+import com.parveenbhadoo.qdm.utils.NetworkUtils
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +75,8 @@ fun MainScreen(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
 
     val folderPickerLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
@@ -70,6 +88,11 @@ fun MainScreen(
             )
             viewModel.onFolderSetupCustomPicked(it.toString())
         }
+    }
+
+    // Focus the search field when it becomes visible
+    LaunchedEffect(uiState.isSearchActive) {
+        if (uiState.isSearchActive) focusRequester.requestFocus()
     }
 
     ModalNavigationDrawer(
@@ -84,7 +107,7 @@ fun MainScreen(
                 HorizontalDivider()
                 NavigationDrawerItem(
                     label = { Text(stringResource(R.string.downloads)) },
-                    selected = true,
+                    selected = false,
                     onClick = { scope.launch { drawerState.close() } }
                 )
                 NavigationDrawerItem(
@@ -109,30 +132,79 @@ fun MainScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(stringResource(R.string.app_name)) },
+                    title = {
+                        AnimatedVisibility(
+                            visible = uiState.isSearchActive,
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            OutlinedTextField(
+                                value = uiState.searchQuery,
+                                onValueChange = viewModel::onSearchQueryChanged,
+                                placeholder = { Text("Search downloads…") },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequester),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+                                trailingIcon = {
+                                    IconButton(onClick = {
+                                        focusManager.clearFocus()
+                                        viewModel.toggleSearch()
+                                    }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Close search")
+                                    }
+                                }
+                            )
+                        }
+                        AnimatedVisibility(
+                            visible = !uiState.isSearchActive,
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            Text(stringResource(R.string.app_name))
+                        }
+                    },
                     navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        if (uiState.isSearchActive) {
+                            IconButton(onClick = {
+                                focusManager.clearFocus()
+                                viewModel.toggleSearch()
+                            }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close search")
+                            }
+                        } else {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            }
                         }
                     },
                     actions = {
-                        IconButton(onClick = { viewModel.toggleSearch() }) {
-                            Icon(Icons.Default.Search, contentDescription = "Search")
+                        if (!uiState.isSearchActive) {
+                            IconButton(onClick = { viewModel.toggleSearch() }) {
+                                Icon(Icons.Default.Search, contentDescription = "Search")
+                            }
+                            IconButton(onClick = { onNavigateToBrowser("https://www.google.com") }) {
+                                Icon(Icons.Outlined.Language, contentDescription = "Browser")
+                            }
                         }
                     }
                 )
             },
             floatingActionButton = {
-                MultiFab(
-                    onAddLink = { viewModel.showAddSheet() },
-                    onPasteClipboard = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
-                        val url = NetworkUtils.extractUrl(text) ?: ""
-                        viewModel.showAddSheet(url)
-                    },
-                    onOpenBrowser = { onNavigateToBrowser("https://www.google.com") }
-                )
+                if (!uiState.isSearchActive) {
+                    MultiFab(
+                        onAddLink = { viewModel.showAddSheet() },
+                        onPasteClipboard = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                            val url = NetworkUtils.extractUrl(text) ?: ""
+                            viewModel.showAddSheet(url)
+                        },
+                        onOpenBrowser = { onNavigateToBrowser("https://www.google.com") }
+                    )
+                }
             }
         ) { padding ->
             Column(modifier = Modifier.padding(padding).fillMaxSize()) {
@@ -147,9 +219,12 @@ fun MainScreen(
                 }
 
                 if (uiState.filteredDownloads.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = "No downloads yet. Tap + to add one.",
+                            text = if (uiState.isSearchActive && uiState.searchQuery.isNotBlank())
+                                "No results for \"${uiState.searchQuery}\""
+                            else
+                                "No downloads yet. Tap + to add one.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(24.dp)
@@ -163,6 +238,7 @@ fun MainScreen(
                         ) { item ->
                             DownloadItemRow(
                                 item = item,
+                                onStart = { viewModel.onResume(item.id) },
                                 onPause = { viewModel.onPause(item.id) },
                                 onResume = { viewModel.onResume(item.id) },
                                 onCancel = { viewModel.onCancel(item.id) },
@@ -210,9 +286,13 @@ fun MainScreen(
         AddDownloadSheet(
             initialUrl = uiState.prefillUrl,
             onDismiss = { viewModel.dismissAddSheet() },
-            onDownloadStarted = { downloadId ->
+            onAdded = { downloadId ->
+                // Enqueued only — user tapped "Add", no auto-start
                 viewModel.dismissAddSheet()
-                viewModel.startDownload(downloadId)
+            },
+            onStarted = { _ ->
+                // AddDownloadViewModel already called ResumeDownloadUseCase — just dismiss
+                viewModel.dismissAddSheet()
             }
         )
     }

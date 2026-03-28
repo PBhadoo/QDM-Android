@@ -1,4 +1,4 @@
-package com.qdm.app.domain.engine
+package com.parveenbhadoo.qdm.domain.engine
 
 class SpeedCalculator {
     private data class Sample(val timestamp: Long, val bytes: Long)

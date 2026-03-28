@@ -1,14 +1,17 @@
-package com.qdm.app.presentation.screens.browser
+package com.parveenbhadoo.qdm.presentation.screens.browser
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.qdm.app.data.repository.BrowserRepository
+import com.parveenbhadoo.qdm.data.local.entity.BrowserHistoryEntity
+import com.parveenbhadoo.qdm.data.repository.BrowserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,17 +24,23 @@ data class BrowserUiState(
     val canGoForward: Boolean = false,
     val detectedMediaUrl: String? = null,
     val detectedMediaHeaders: Map<String, String> = emptyMap(),
-    val adBlockedCount: Int = 0
+    val adBlockedCount: Int = 0,
+    val showHistory: Boolean = false
 )
 
 @HiltViewModel
 class BrowserViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val browserRepository: BrowserRepository
+    private val browserRepository: BrowserRepository,
+    private val stateHolder: BrowserStateHolder
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(BrowserUiState())
+    // Restore last URL from holder so browser survives nav pop/push
+    private val _uiState = MutableStateFlow(BrowserUiState(currentUrl = stateHolder.lastUrl))
     val uiState: StateFlow<BrowserUiState> = _uiState.asStateFlow()
+
+    /** The URL to load on first composition — either restored or the one passed via nav arg. */
+    val startUrl: String get() = stateHolder.lastUrl
 
     private val _adBlockHosts = MutableStateFlow<Set<String>>(emptySet())
     val adBlockHosts: StateFlow<Set<String>> = _adBlockHosts.asStateFlow()
@@ -60,6 +69,7 @@ class BrowserViewModel @Inject constructor(
 
     fun onPageFinished(url: String, title: String) {
         _uiState.update { it.copy(currentUrl = url, pageTitle = title, progress = 100) }
+        stateHolder.lastUrl = url  // persist so browser reopens on this page
         viewModelScope.launch { browserRepository.addHistory(url, title) }
     }
 
@@ -76,4 +86,15 @@ class BrowserViewModel @Inject constructor(
     fun onAdBlocked() = _uiState.update { it.copy(adBlockedCount = it.adBlockedCount + 1) }
 
     fun setUrl(url: String) = _uiState.update { it.copy(currentUrl = url) }
+
+    // History
+    val history: StateFlow<List<BrowserHistoryEntity>> = browserRepository.getHistory()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun showHistory() = _uiState.update { it.copy(showHistory = true) }
+    fun dismissHistory() = _uiState.update { it.copy(showHistory = false) }
+
+    fun clearHistory() {
+        viewModelScope.launch { browserRepository.clearHistory() }
+    }
 }

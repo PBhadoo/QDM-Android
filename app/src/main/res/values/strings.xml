@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">QDM</string>
+    <string name="app_full_name">Quantum Download Manager</string>
 
     <!-- Tabs -->
     <string name="tab_all">All</string>
@@ -11,6 +12,7 @@
 
     <!-- Download actions -->
     <string name="action_pause">Pause</string>
+    <string name="action_start">Start</string>
     <string name="action_resume">Resume</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_open">Open</string>
@@ -41,6 +43,7 @@
 
     <!-- Download states -->
     <string name="state_pending">Pending</string>
+    <string name="state_connecting">Connecting…</string>
     <string name="state_downloading">Downloading</string>
     <string name="state_paused">Paused</string>
     <string name="state_completed">Completed</string>
@@ -107,4 +110,18 @@
     <!-- Drawer -->
     <string name="downloads">Downloads</string>
     <string name="about">About</string>
+
+    <!-- About section -->
+    <string name="made_with_love">Made with ♥ by Parveen Bhadoo</string>
+    <string name="check_for_updates">Check for Updates</string>
+    <string name="update_checking">Checking…</string>
+    <string name="update_up_to_date">Up to date (%s)</string>
+    <string name="update_available">Update available: %s — tap to download</string>
+    <string name="update_failed">Check failed. Tap to retry.</string>
+
+    <!-- Resumable indicator -->
+    <string name="resumable">Resumable</string>
+    <string name="not_resumable">Not resumable</string>
+    <string name="resume_yes">Yes</string>
+    <string name="resume_no">No</string>
 </resources>

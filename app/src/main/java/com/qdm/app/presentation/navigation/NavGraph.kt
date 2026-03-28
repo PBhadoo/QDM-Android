@@ -1,14 +1,16 @@
-package com.qdm.app.presentation.navigation
+package com.parveenbhadoo.qdm.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.qdm.app.presentation.screens.browser.BrowserScreen
-import com.qdm.app.presentation.screens.main.MainScreen
-import com.qdm.app.presentation.screens.settings.SettingsScreen
+import com.parveenbhadoo.qdm.presentation.screens.browser.BrowserScreen
+import com.parveenbhadoo.qdm.presentation.screens.browser.BrowserViewModel
+import com.parveenbhadoo.qdm.presentation.screens.main.MainScreen
+import com.parveenbhadoo.qdm.presentation.screens.settings.SettingsScreen
 
 @Composable
 fun NavGraph(startUrl: String? = null) {
@@ -33,15 +35,14 @@ fun NavGraph(startUrl: String? = null) {
                 defaultValue = "https://www.google.com"
             })
         ) { backStackEntry ->
+            val viewModel: BrowserViewModel = hiltViewModel()
+            val navArgUrl = backStackEntry.arguments?.getString("url") ?: "https://www.google.com"
+            val effectiveUrl = if (navArgUrl != "https://www.google.com") navArgUrl else viewModel.startUrl
+
             BrowserScreen(
-                initialUrl = backStackEntry.arguments?.getString("url") ?: "https://www.google.com",
+                initialUrl = effectiveUrl,
                 onNavigateBack = { navController.popBackStack() },
-                onDownloadRequested = { url, headers, cookies ->
-                    // Navigate back to main and open add sheet pre-filled
-                    navController.popBackStack()
-                    // URL will be picked up by MainScreen via pendingUrl
-                    com.qdm.app.MainActivity.pendingUrl = url
-                }
+                viewModel = viewModel
             )
         }
 

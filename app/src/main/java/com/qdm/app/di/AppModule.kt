@@ -1,4 +1,4 @@
-package com.qdm.app.di
+package com.parveenbhadoo.qdm.di
 
 import android.content.Context
 import androidx.work.WorkManager

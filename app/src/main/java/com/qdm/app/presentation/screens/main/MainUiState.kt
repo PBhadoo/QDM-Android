@@ -1,8 +1,8 @@
-package com.qdm.app.presentation.screens.main
+package com.parveenbhadoo.qdm.presentation.screens.main
 
-import com.qdm.app.R
-import com.qdm.app.domain.model.DownloadItem
-import com.qdm.app.domain.model.DownloadState
+import com.parveenbhadoo.qdm.R
+import com.parveenbhadoo.qdm.domain.model.DownloadItem
+import com.parveenbhadoo.qdm.domain.model.DownloadState
 
 data class MainUiState(
     val downloads: List<DownloadItem> = emptyList(),

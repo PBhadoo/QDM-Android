@@ -1,4 +1,4 @@
-package com.qdm.app.presentation.navigation
+package com.parveenbhadoo.qdm.presentation.navigation
 
 sealed class Screen(val route: String) {
     object Main : Screen("main")

@@ -1,14 +1,17 @@
-package com.qdm.app.presentation.screens.adddownload
+package com.parveenbhadoo.qdm.presentation.screens.adddownload
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.qdm.app.data.preferences.UserPreferencesDataStore
-import com.qdm.app.domain.model.AddDownloadRequest
-import com.qdm.app.domain.usecase.AddDownloadUseCase
-import com.qdm.app.domain.usecase.FetchFileMetadataUseCase
-import com.qdm.app.utils.FileUtils
-import com.qdm.app.utils.QdmLog
+import com.parveenbhadoo.qdm.data.preferences.UserPreferencesDataStore
+import com.parveenbhadoo.qdm.domain.model.AddDownloadRequest
+import com.parveenbhadoo.qdm.domain.usecase.AddDownloadUseCase
+import com.parveenbhadoo.qdm.domain.usecase.FetchFileMetadataUseCase
+import com.parveenbhadoo.qdm.domain.usecase.ResumeDownloadUseCase
+import com.parveenbhadoo.qdm.utils.FileUtils
+import com.parveenbhadoo.qdm.utils.QdmLog
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,30 +24,53 @@ import javax.inject.Inject
 class AddDownloadViewModel @Inject constructor(
     private val fetchMetadata: FetchFileMetadataUseCase,
     private val addDownload: AddDownloadUseCase,
+    private val resumeDownload: ResumeDownloadUseCase,
     private val prefs: UserPreferencesDataStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddDownloadUiState())
     val uiState: StateFlow<AddDownloadUiState> = _uiState.asStateFlow()
 
-    fun setInitialUrl(url: String) {
-        _uiState.update { it.copy(url = url) }
+    private var fetchJob: Job? = null
+
+    init {
+        // Load defaults so the sheet shows them immediately
+        viewModelScope.launch {
+            val settings = prefs.settingsFlow.first()
+            _uiState.update { it.copy(savePath = settings.defaultSavePath, userAgent = settings.defaultUserAgent) }
+        }
     }
 
-    fun onUrlChanged(url: String) = _uiState.update { it.copy(url = url, isFetched = false, error = null) }
-    fun onRefererChanged(v: String) = _uiState.update { it.copy(referer = v) }
-    fun onFileNameChanged(v: String) = _uiState.update { it.copy(fileName = v) }
-    fun onThreadCountChanged(v: Int) = _uiState.update { it.copy(threadCount = v.coerceIn(1, 16)) }
-    fun onUserAgentChanged(v: String) = _uiState.update { it.copy(userAgent = v) }
-    fun onSpeedLimitChanged(v: Long) = _uiState.update { it.copy(speedLimitBps = v) }
-    fun onUsernameChanged(v: String) = _uiState.update { it.copy(username = v) }
-    fun onPasswordChanged(v: String) = _uiState.update { it.copy(password = v) }
-    fun onCookiesChanged(v: String) = _uiState.update { it.copy(cookies = v) }
-    fun toggleAdvanced() = _uiState.update { it.copy(showAdvanced = !it.showAdvanced) }
+    fun setInitialUrl(url: String, referer: String = "", cookies: String = "", userAgent: String = "") {
+        _uiState.update { state ->
+            state.copy(
+                url = url,
+                referer = referer,
+                cookies = cookies,
+                userAgent = userAgent.ifBlank { state.userAgent }
+            )
+        }
+        scheduleAutoFetch(url)
+    }
 
-    fun onSavePathSelected(uri: String) = _uiState.update { it.copy(savePath = uri) }
+    fun onUrlChanged(url: String) {
+        _uiState.update { it.copy(url = url, isFetched = false, error = null, fileName = "", totalBytes = -1L) }
+        scheduleAutoFetch(url)
+    }
 
-    fun fetchInfo() {
+    /** Debounced auto-fetch: fires 800ms after the user stops typing. */
+    private fun scheduleAutoFetch(url: String) {
+        fetchJob?.cancel()
+        val trimmed = url.trim()
+        if (trimmed.isBlank() || (!trimmed.startsWith("http://") && !trimmed.startsWith("https://"))) return
+        fetchJob = viewModelScope.launch {
+            delay(800)
+            fetchInfoSilent()
+        }
+    }
+
+    /** Fetch metadata; on failure just log — never show error in UI. */
+    private fun fetchInfoSilent() {
         val url = _uiState.value.url.trim()
         if (url.isBlank()) return
         QdmLog.d("AddDownloadVM", "fetchInfo url=$url")
@@ -63,19 +89,56 @@ class AddDownloadViewModel @Inject constructor(
                         fileName = if (it.fileName.isBlank()) meta.fileName else it.fileName,
                         totalBytes = meta.totalBytes,
                         mimeType = meta.mimeType,
+                        supportsRanges = meta.supportsRanges,
                         threadCount = if (meta.supportsRanges) it.threadCount else 1
                     )
                 }
             }.onFailure { e ->
-                QdmLog.e("AddDownloadVM", "fetchInfo failed: ${e.message}", e)
-                _uiState.update { it.copy(isLoading = false, error = e.message ?: "Failed to fetch info") }
+                QdmLog.w("AddDownloadVM", "fetchInfo failed: ${e.message}")
+                val fallbackName = FileUtils.extractFileNameFromUrl(url)
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    isFetched = true,
+                    fileName = if (it.fileName.isBlank()) fallbackName else it.fileName
+                ) }
             }
         }
     }
 
-    fun startDownload(onStarted: (String) -> Unit) {
+    fun onRefererChanged(v: String) = _uiState.update { it.copy(referer = v) }
+    fun onFileNameChanged(v: String) = _uiState.update { it.copy(fileName = v) }
+    fun onThreadCountChanged(v: Int) = _uiState.update { it.copy(threadCount = v.coerceIn(1, 16)) }
+    fun onUserAgentChanged(v: String) = _uiState.update { it.copy(userAgent = v) }
+    fun onSpeedLimitChanged(v: Long) = _uiState.update { it.copy(speedLimitBps = v) }
+    fun onUsernameChanged(v: String) = _uiState.update { it.copy(username = v) }
+    fun onPasswordChanged(v: String) = _uiState.update { it.copy(password = v) }
+    fun onCookiesChanged(v: String) = _uiState.update { it.copy(cookies = v) }
+    fun toggleAdvanced() = _uiState.update { it.copy(showAdvanced = !it.showAdvanced) }
+    fun onSavePathSelected(uri: String) = _uiState.update { it.copy(savePath = uri) }
+
+    /**
+     * "Add" — enqueue to DB immediately, no auto-start.
+     * Derives filename from URL if metadata not yet fetched.
+     */
+    fun addToQueue(onAdded: (String) -> Unit) {
+        enqueue(autoStart = false, onDone = onAdded)
+    }
+
+    /**
+     * "Start" — enqueue and immediately begin downloading.
+     * Only enabled once filename + size are known.
+     */
+    fun addAndStart(onStarted: (String) -> Unit) {
+        enqueue(autoStart = true, onDone = onStarted)
+    }
+
+    private fun enqueue(autoStart: Boolean, onDone: (String) -> Unit) {
         val state = _uiState.value
-        if (state.fileName.isBlank() || state.url.isBlank()) return
+        if (state.url.isBlank()) return
+
+        val fileName = state.fileName.ifBlank {
+            FileUtils.extractFileNameFromUrl(state.url)
+        }
 
         viewModelScope.launch {
             val settings = prefs.settingsFlow.first()
@@ -84,7 +147,7 @@ class AddDownloadViewModel @Inject constructor(
 
             val request = AddDownloadRequest(
                 url = state.url.trim(),
-                fileName = FileUtils.sanitizeFileName(state.fileName),
+                fileName = FileUtils.sanitizeFileName(fileName),
                 savePath = savePath,
                 mimeType = state.mimeType,
                 totalBytes = state.totalBytes,
@@ -95,11 +158,13 @@ class AddDownloadViewModel @Inject constructor(
                 speedLimitBps = state.speedLimitBps,
                 username = state.username.takeIf { it.isNotBlank() },
                 password = state.password.takeIf { it.isNotBlank() },
-                scheduledAt = state.scheduledAt
+                scheduledAt = state.scheduledAt,
+                supportsRanges = state.supportsRanges
             )
             val id = addDownload.execute(request)
-            QdmLog.i("AddDownloadVM", "Enqueued id=$id file=${request.fileName} savePath=${request.savePath.ifBlank { "<default>" }}")
-            onStarted(id)
+            QdmLog.i("AddDownloadVM", "${if (autoStart) "AddAndStart" else "AddOnly"} id=$id file=${request.fileName}")
+            if (autoStart) resumeDownload.execute(id)
+            onDone(id)
         }
     }
 }

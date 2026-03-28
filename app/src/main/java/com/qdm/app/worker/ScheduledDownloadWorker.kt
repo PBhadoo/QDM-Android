@@ -1,12 +1,12 @@
-package com.qdm.app.worker
+package com.parveenbhadoo.qdm.worker
 
 import android.content.Context
 import android.content.Intent
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.qdm.app.data.repository.DownloadRepository
-import com.qdm.app.service.DownloadService
+import com.parveenbhadoo.qdm.data.repository.DownloadRepository
+import com.parveenbhadoo.qdm.service.DownloadService
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 

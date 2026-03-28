@@ -1,6 +1,6 @@
-package com.qdm.app.di
+package com.parveenbhadoo.qdm.di
 
-import com.qdm.app.data.remote.HttpClientProvider
+import com.parveenbhadoo.qdm.data.remote.HttpClientProvider
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

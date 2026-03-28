@@ -1,4 +1,4 @@
-package com.qdm.app
+package com.parveenbhadoo.qdm
 
 import android.Manifest
 import android.content.Intent
@@ -8,6 +8,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
@@ -15,11 +16,11 @@ import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
-import com.qdm.app.data.preferences.UserPreferencesDataStore
-import com.qdm.app.presentation.navigation.NavGraph
-import com.qdm.app.presentation.screens.main.MainViewModel
-import com.qdm.app.presentation.theme.QdmTheme
-import com.qdm.app.utils.NetworkUtils
+import com.parveenbhadoo.qdm.data.preferences.UserPreferencesDataStore
+import com.parveenbhadoo.qdm.presentation.navigation.NavGraph
+import com.parveenbhadoo.qdm.presentation.screens.main.MainViewModel
+import com.parveenbhadoo.qdm.presentation.theme.QdmTheme
+import com.parveenbhadoo.qdm.utils.NetworkUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -35,13 +36,14 @@ class MainActivity : ComponentActivity() {
     ) { /* granted */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         requestNotificationPermission()
 
         setContent {
             val settings by preferencesDataStore.settingsFlow.collectAsState(
-                initial = com.qdm.app.domain.model.AppSettings()
+                initial = com.parveenbhadoo.qdm.domain.model.AppSettings()
             )
             val darkTheme = when (settings.darkMode) {
                 true -> true

@@ -1,4 +1,4 @@
-package com.qdm.app.domain.model
+package com.parveenbhadoo.qdm.domain.model
 
 data class AddDownloadRequest(
     val url: String,
@@ -14,5 +14,6 @@ data class AddDownloadRequest(
     val speedLimitBps: Long = 0L,
     val username: String? = null,
     val password: String? = null,
-    val scheduledAt: Long? = null
+    val scheduledAt: Long? = null,
+    val supportsRanges: Boolean = false
 )

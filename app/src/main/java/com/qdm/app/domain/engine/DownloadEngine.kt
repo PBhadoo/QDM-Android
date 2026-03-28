@@ -1,13 +1,13 @@
-package com.qdm.app.domain.engine
+package com.parveenbhadoo.qdm.domain.engine
 
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
-import com.qdm.app.data.repository.DownloadRepository
-import com.qdm.app.domain.model.DownloadItem
-import com.qdm.app.domain.model.DownloadState
-import com.qdm.app.utils.FileUtils
-import com.qdm.app.utils.QdmLog
+import com.parveenbhadoo.qdm.data.repository.DownloadRepository
+import com.parveenbhadoo.qdm.domain.model.DownloadItem
+import com.parveenbhadoo.qdm.domain.model.DownloadState
+import com.parveenbhadoo.qdm.utils.FileUtils
+import com.parveenbhadoo.qdm.utils.QdmLog
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,8 +18,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -155,7 +157,10 @@ class DownloadEngine @Inject constructor(
         updateState(downloadId, DownloadState.Cancelled)
     }
 
-    private fun fail(downloadId: String, message: String) {
+    private suspend fun fail(downloadId: String, message: String) {
+        withContext(NonCancellable) {
+            repository.updateState(downloadId, DownloadState.Error(message))
+        }
         updateState(downloadId, DownloadState.Error(message))
     }
 

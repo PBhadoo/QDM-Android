@@ -1,18 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Download arrow -->
-    <group
-        android:translateX="26"
-        android:translateY="22">
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M28,8 L28,38 L40,26 L44.5,30.5 L28,47 L11.5,30.5 L16,26 L28,38 L28,8 Z" />
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M8,50 L48,50 L48,56 L8,56 Z" />
-    </group>
+
+    <!-- ── BOLD DOWNLOAD ARROW ── -->
+    <!-- Shaft + chevron head as a single filled path, white-to-cyan gradient -->
+    <path android:pathData="M50,22 L58,22 L58,50 L67,50 L54,65 L41,50 L50,50 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="54"
+                android:startY="22"
+                android:endX="54"
+                android:endY="65">
+                <item android:offset="0"   android:color="#FFFFFF" />
+                <item android:offset="1"   android:color="#7DD4FC" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- ── DOWNLOAD TRAY (rounded landing bar) ── -->
+    <path android:pathData="M38,72 Q34,72 34,76 Q34,80 38,80 L70,80 Q74,80 74,76 Q74,72 70,72 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="34"
+                android:startY="76"
+                android:endX="74"
+                android:endY="76">
+                <item android:offset="0"   android:color="#FFFFFF" />
+                <item android:offset="1"   android:color="#7DD4FC" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- ── SPEED STREAKS LEFT (3 horizontal lines tapering away) ── -->
+    <!-- Closest / thickest -->
+    <path
+        android:pathData="M18,33 L44,33"
+        android:strokeColor="#CCFFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <!-- Middle -->
+    <path
+        android:pathData="M21,41 L44,41"
+        android:strokeColor="#88FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <!-- Far / thinnest -->
+    <path
+        android:pathData="M25,49 L44,49"
+        android:strokeColor="#44FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+
+    <!-- ── SPEED STREAKS RIGHT ── -->
+    <path
+        android:pathData="M64,33 L90,33"
+        android:strokeColor="#CCFFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M64,41 L87,41"
+        android:strokeColor="#88FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M64,49 L83,49"
+        android:strokeColor="#44FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+
+    <!-- ── GLOW DOT at arrow tip (impact effect) ── -->
+    <path android:pathData="M54,65 m-4,0 a4,4,0,1,0,8,0 a4,4,0,1,0,-8,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="65"
+                android:gradientRadius="5">
+                <item android:offset="0"   android:color="#FFFFFF" />
+                <item android:offset="1"   android:color="#007AFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>

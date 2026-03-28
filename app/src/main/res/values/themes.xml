@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Post-splash theme used by the app after launch -->
     <style name="Theme.QDM" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Splash screen theme (applied to MainActivity in manifest) -->
+    <style name="Theme.QDM.Splash" parent="Theme.SplashScreen">
+        <!-- Deep navy background matching the icon background layer -->
+        <item name="windowSplashScreenBackground">#0A1628</item>
+        <!-- Use the foreground icon drawable for the splash icon -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <!-- Icon background circle color (shown on API 31+) -->
+        <item name="windowSplashScreenIconBackgroundColor">#1A3A6B</item>
+        <!-- Transition to main theme after splash exits -->
+        <item name="postSplashScreenTheme">@style/Theme.QDM</item>
     </style>
 </resources>

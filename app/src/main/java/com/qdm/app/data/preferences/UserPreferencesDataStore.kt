@@ -1,4 +1,4 @@
-package com.qdm.app.data.preferences
+package com.parveenbhadoo.qdm.data.preferences
 
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -9,7 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.qdm.app.domain.model.AppSettings
+import com.parveenbhadoo.qdm.domain.model.AppSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -44,6 +44,7 @@ class UserPreferencesDataStore @Inject constructor(
             val darkModeStr = prefs[Keys.DARK_MODE] ?: "system"
             AppSettings(
                 defaultSavePath = prefs[Keys.SAVE_PATH] ?: "",
+                folderSetupDone = prefs[Keys.FOLDER_SETUP_DONE] ?: false,
                 defaultThreadCount = prefs[Keys.THREAD_COUNT] ?: 4,
                 maxConcurrentDownloads = prefs[Keys.MAX_CONCURRENT] ?: 3,
                 globalSpeedLimitBps = prefs[Keys.SPEED_LIMIT] ?: 0L,

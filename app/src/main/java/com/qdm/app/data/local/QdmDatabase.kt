@@ -1,13 +1,13 @@
-package com.qdm.app.data.local
+package com.parveenbhadoo.qdm.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.qdm.app.data.local.dao.BrowserHistoryDao
-import com.qdm.app.data.local.dao.DownloadDao
-import com.qdm.app.data.local.dao.ScheduledDownloadDao
-import com.qdm.app.data.local.entity.BrowserHistoryEntity
-import com.qdm.app.data.local.entity.DownloadEntity
-import com.qdm.app.data.local.entity.ScheduledDownloadEntity
+import com.parveenbhadoo.qdm.data.local.dao.BrowserHistoryDao
+import com.parveenbhadoo.qdm.data.local.dao.DownloadDao
+import com.parveenbhadoo.qdm.data.local.dao.ScheduledDownloadDao
+import com.parveenbhadoo.qdm.data.local.entity.BrowserHistoryEntity
+import com.parveenbhadoo.qdm.data.local.entity.DownloadEntity
+import com.parveenbhadoo.qdm.data.local.entity.ScheduledDownloadEntity
 
 @Database(
     entities = [
@@ -15,7 +15,7 @@ import com.qdm.app.data.local.entity.ScheduledDownloadEntity
         BrowserHistoryEntity::class,
         ScheduledDownloadEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class QdmDatabase : RoomDatabase() {

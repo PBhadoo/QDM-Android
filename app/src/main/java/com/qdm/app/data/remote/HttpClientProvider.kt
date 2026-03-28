@@ -1,8 +1,8 @@
-package com.qdm.app.data.remote
+package com.parveenbhadoo.qdm.data.remote
 
-import com.qdm.app.data.remote.interceptors.CookieInterceptor
-import com.qdm.app.data.remote.interceptors.HeaderInterceptor
-import com.qdm.app.data.remote.interceptors.UserAgentInterceptor
+import com.parveenbhadoo.qdm.data.remote.interceptors.CookieInterceptor
+import com.parveenbhadoo.qdm.data.remote.interceptors.HeaderInterceptor
+import com.parveenbhadoo.qdm.data.remote.interceptors.UserAgentInterceptor
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import java.util.concurrent.TimeUnit
