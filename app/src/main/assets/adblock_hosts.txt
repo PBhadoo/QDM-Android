@@ -1,0 +1,80 @@
+# QDM Ad Block Hosts
+# Format: one hostname per line (no 127.0.0.1 prefix needed)
+# Last updated: 2026-01
+
+# Common ad networks
+doubleclick.net
+googleadservices.com
+googlesyndication.com
+google-analytics.com
+analytics.google.com
+pagead2.googlesyndication.com
+adservice.google.com
+adservice.google.co.in
+adservice.google.co.uk
+ads.google.com
+adwords.google.com
+odin.googlesyndication.com
+partner.googleadservices.com
+
+# Facebook tracking
+graph.facebook.com
+connect.facebook.net
+www.facebook.com
+
+# Analytics
+hotjar.com
+mixpanel.com
+amplitude.com
+segment.com
+segment.io
+heapanalytics.com
+fullstory.com
+logrocket.com
+newrelic.com
+nr-data.net
+
+# Ad networks
+ads.yahoo.com
+adtech.de
+advertising.com
+adbrite.com
+adcolony.com
+admob.com
+adnxs.com
+adsafeprotected.com
+appnexus.com
+criteo.com
+criteo.net
+casalemedia.com
+rubiconproject.com
+openx.net
+pubmatic.com
+taboola.com
+outbrain.com
+spotxchange.com
+yieldmanager.com
+yieldmo.com
+bidswitch.net
+amazon-adsystem.com
+s3.amazonaws.com
+
+# Tracking
+scorecardresearch.com
+chartbeat.com
+quantserve.com
+comscore.com
+omtrdc.net
+2o7.net
+demdex.net
+adobedtm.com
+tiqcdn.com
+cloudfront.net
+
+# Spam/malware domains
+zedo.com
+smartadserver.com
+smaato.net
+lijit.com
+reachlocal.com
+brightmountainmedia.com
