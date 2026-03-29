@@ -30,4 +30,24 @@ object FormatUtils {
         val pct = if (total > 0) (downloaded * 100L / total) else 0
         return "${formatBytes(downloaded)} / ${formatBytes(total)} ($pct%)"
     }
+
+    /**
+     * Truncates a filename so the start and extension are preserved.
+     * "Argylle 2024 HDTS 720p Hindi + English x264 AAC.mkv" → "Argylle 2024....mkv"
+     * Short names that already fit within [maxLen] are returned unchanged.
+     */
+    fun smartTruncate(name: String, maxLen: Int = 22): String {
+        val dotIdx = name.lastIndexOf('.')
+        if (dotIdx <= 0) {
+            // No extension — just truncate with ellipsis
+            return if (name.length <= maxLen) name else "${name.take(maxLen - 3)}..."
+        }
+        val base = name.substring(0, dotIdx)
+        val ext = name.substring(dotIdx) // includes the dot, e.g. ".mkv"
+        if (name.length <= maxLen) return name
+        // Keep as many chars of the base as possible, then .... then ext
+        val ellipsis = "...."
+        val available = maxLen - ext.length - ellipsis.length
+        return if (available > 0) "${base.take(available)}$ellipsis$ext" else "$ellipsis$ext"
+    }
 }

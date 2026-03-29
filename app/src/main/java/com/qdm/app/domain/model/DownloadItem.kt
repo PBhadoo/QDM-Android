@@ -1,5 +1,8 @@
 package com.parveenbhadoo.qdm.domain.model
 
+import androidx.compose.runtime.Stable
+
+@Stable
 data class DownloadItem(
     val id: String,
     val url: String,
@@ -23,7 +26,8 @@ data class DownloadItem(
     val completedAt: Long?,
     val errorMessage: String?,
     val scheduledAt: Long?,
-    val supportsRanges: Boolean = false
+    val supportsRanges: Boolean = false,
+    val isQueued: Boolean = false
 ) {
     val progress: Float
         get() = if (totalBytes > 0) downloadedBytes.toFloat() / totalBytes else 0f

@@ -18,8 +18,16 @@
     <string name="action_open">Open</string>
     <string name="action_share">Share</string>
     <string name="action_redownload">Redownload</string>
+    <string name="action_redownload_options">Redownload with options…</string>
     <string name="action_remove">Remove</string>
     <string name="action_remove_with_file">Remove with file</string>
+    <string name="action_open_folder">Open folder</string>
+    <string name="action_copy_link">Copy download link</string>
+    <string name="action_copy_move_rename">Copy / Move / Rename</string>
+    <string name="action_properties">Properties</string>
+    <string name="import_from_file">Import from text file</string>
+    <string name="tab_pending">Pending</string>
+    <string name="tab_queue">Queue</string>
 
     <!-- Add download sheet -->
     <string name="add_download">Add Download</string>

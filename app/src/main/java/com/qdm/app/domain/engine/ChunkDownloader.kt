@@ -39,9 +39,17 @@ class ChunkDownloader(
             throw IllegalStateException("HTTP ${response.code}: ${response.message}")
         }
 
+        // If we sent a Range header but got 200 (not 206), the server ignored the range.
+        // Treat this as a full-file response starting at 0 to avoid writing corrupt data.
+        val actualStartByte = if (startByte > 0 && response.code == 200) {
+            0L
+        } else {
+            startByte
+        }
+
         val body = response.body ?: throw IllegalStateException("Empty response body")
         val channel: FileChannel = FileOutputStream(fileDescriptor).channel
-        channel.position(startByte)
+        channel.position(actualStartByte)
 
         val buffer = ByteArray(BUFFER_SIZE)
         var accumulatedBytes = 0L

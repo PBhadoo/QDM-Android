@@ -1,5 +1,7 @@
 package com.parveenbhadoo.qdm.presentation.components
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,18 +10,25 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.automirrored.filled.DriveFileMove
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.VideoFile
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,6 +44,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.parveenbhadoo.qdm.R
 import com.parveenbhadoo.qdm.domain.model.DownloadItem
@@ -55,7 +65,12 @@ fun DownloadItemRow(
     onOpen: () -> Unit,
     onShare: () -> Unit,
     onRedownload: () -> Unit,
+    onRedownloadWithOptions: () -> Unit,
     onRemove: () -> Unit,
+    onOpenFolder: () -> Unit,
+    onCopyLink: () -> Unit,
+    onCopyMoveRename: () -> Unit,
+    onProperties: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -87,87 +102,132 @@ fun DownloadItemRow(
                 modifier = Modifier.size(32.dp)
             )
             Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                // Filename + resume badge
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .animateContentSize()
+            ) {
+                // Smart-truncated filename + resume badge on the same line
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = item.fileName,
+                        text = FormatUtils.smartTruncate(item.fileName),
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        overflow = TextOverflow.Clip,
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     Spacer(Modifier.width(6.dp))
                     ResumeBadge(supportsRanges = item.supportsRanges)
                 }
-                // Size / progress below filename
-                SizeProgressText(item)
+                // Fixed-height size/progress row — prevents layout jump as text changes length
+                Box(modifier = Modifier.height(16.dp).widthIn(min = 140.dp)) {
+                    SizeProgressText(item)
+                }
                 Spacer(Modifier.height(2.dp))
                 StateRow(item = item)
+                // Chunk progress bar — only visible while actively downloading or paused
                 if (item.state is DownloadState.Downloading || item.state is DownloadState.Paused) {
                     Spacer(Modifier.height(4.dp))
-                    LinearProgressIndicator(
-                        progress = { item.progress },
+                    ChunkProgressBar(
+                        progress = item.progress,
+                        chunkCount = item.threadCount.coerceAtLeast(1),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
             Spacer(Modifier.width(4.dp))
-            IconButton(onClick = { menuExpanded = true }) {
-                Icon(Icons.Default.MoreVert, contentDescription = "More")
-            }
-            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                when (item.state) {
-                    is DownloadState.Downloading, is DownloadState.Connecting -> {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.action_pause)) },
-                            onClick = { menuExpanded = false; onPause() }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.action_cancel)) },
-                            onClick = { menuExpanded = false; onCancel() }
-                        )
-                    }
-                    is DownloadState.Pending -> {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.action_start)) },
-                            onClick = { menuExpanded = false; onStart() }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.action_cancel)) },
-                            onClick = { menuExpanded = false; onCancel() }
-                        )
-                    }
-                    is DownloadState.Paused, is DownloadState.Error -> {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.action_resume)) },
-                            onClick = { menuExpanded = false; onResume() }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.action_cancel)) },
-                            onClick = { menuExpanded = false; onCancel() }
-                        )
-                    }
-                    is DownloadState.Completed -> {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.action_open)) },
-                            onClick = { menuExpanded = false; onOpen() }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.action_share)) },
-                            onClick = { menuExpanded = false; onShare() }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.action_redownload)) },
-                            onClick = { menuExpanded = false; onRedownload() }
-                        )
-                    }
-                    else -> {}
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "More")
                 }
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.action_remove)) },
-                    onClick = { menuExpanded = false; onRemove() }
-                )
+                // Negative x offset aligns the right edge of the menu with the icon button
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                    offset = DpOffset(x = (-160).dp, y = 0.dp)
+                ) {
+                    // State-dependent primary actions
+                    when (item.state) {
+                        is DownloadState.Downloading, is DownloadState.Connecting -> {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.action_pause)) },
+                                onClick = { menuExpanded = false; onPause() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.action_cancel)) },
+                                onClick = { menuExpanded = false; onCancel() }
+                            )
+                        }
+                        is DownloadState.Pending -> {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.action_start)) },
+                                onClick = { menuExpanded = false; onStart() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.action_cancel)) },
+                                onClick = { menuExpanded = false; onCancel() }
+                            )
+                        }
+                        is DownloadState.Paused, is DownloadState.Error -> {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.action_resume)) },
+                                onClick = { menuExpanded = false; onResume() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.action_cancel)) },
+                                onClick = { menuExpanded = false; onCancel() }
+                            )
+                        }
+                        is DownloadState.Completed -> {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.action_open)) },
+                                onClick = { menuExpanded = false; onOpen() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.action_share)) },
+                                leadingIcon = { Icon(Icons.Default.Share, null) },
+                                onClick = { menuExpanded = false; onShare() }
+                            )
+                        }
+                        else -> {}
+                    }
+                    HorizontalDivider()
+                    // Universal actions available for all states
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.action_open_folder)) },
+                        leadingIcon = { Icon(Icons.Default.FolderOpen, null) },
+                        onClick = { menuExpanded = false; onOpenFolder() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.action_redownload)) },
+                        leadingIcon = { Icon(Icons.Default.Refresh, null) },
+                        onClick = { menuExpanded = false; onRedownload() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.action_redownload_options)) },
+                        onClick = { menuExpanded = false; onRedownloadWithOptions() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.action_copy_link)) },
+                        leadingIcon = { Icon(Icons.Default.ContentCopy, null) },
+                        onClick = { menuExpanded = false; onCopyLink() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.action_copy_move_rename)) },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, null) },
+                        onClick = { menuExpanded = false; onCopyMoveRename() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.action_properties)) },
+                        leadingIcon = { Icon(Icons.Default.Info, null) },
+                        onClick = { menuExpanded = false; onProperties() }
+                    )
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.action_remove), color = MaterialTheme.colorScheme.error) },
+                        onClick = { menuExpanded = false; onRemove() }
+                    )
+                }
             }
         }
     }
@@ -202,7 +262,9 @@ private fun SizeProgressText(item: DownloadItem) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
     )
 }
 

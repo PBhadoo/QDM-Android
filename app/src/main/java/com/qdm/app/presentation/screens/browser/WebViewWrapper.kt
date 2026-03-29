@@ -37,6 +37,9 @@ fun WebViewWrapper(
     val context = LocalContext.current
     val webView = remember {
         WebView(context).apply {
+            // Hardware acceleration for smooth rendering
+            setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+            isScrollbarFadingEnabled = true
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
@@ -47,6 +50,9 @@ fun WebViewWrapper(
                 setSupportZoom(true)
                 builtInZoomControls = true
                 displayZoomControls = false
+                // Smooth content rendering
+                setRenderPriority(WebSettings.RenderPriority.HIGH)
+                cacheMode = WebSettings.LOAD_DEFAULT
             }
         }
     }

@@ -42,4 +42,11 @@ interface DownloadDao {
 
     @Query("SELECT * FROM downloads WHERE stateName IN ('Pending', 'Paused', 'Downloading', 'Connecting') ORDER BY addedAt ASC")
     suspend fun getPendingDownloads(): List<DownloadEntity>
+
+    /** Returns downloads in Pending state with isQueued=1, ordered by addedAt (FIFO). */
+    @Query("SELECT * FROM downloads WHERE stateName = 'Pending' AND isQueued = 1 ORDER BY addedAt ASC LIMIT :limit")
+    suspend fun getNextQueuedDownloads(limit: Int = 1): List<DownloadEntity>
+
+    @Query("UPDATE downloads SET isQueued = :isQueued WHERE id = :id")
+    suspend fun updateIsQueued(id: String, isQueued: Boolean)
 }

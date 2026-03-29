@@ -11,27 +11,39 @@ data class MainUiState(
     val searchQuery: String = "",
     val showAddSheet: Boolean = false,
     val prefillUrl: String = "",
-    val showFolderSetupDialog: Boolean = false
+    val showFolderSetupDialog: Boolean = false,
+    val propertiesItem: DownloadItem? = null,
+    val copyMoveRenameItem: DownloadItem? = null
 ) {
     val filteredDownloads: List<DownloadItem>
-        get() {
-            val byTab = when (activeTab) {
-                DownloadTab.ALL -> downloads
-                DownloadTab.DOWNLOADING -> downloads.filter {
-                    it.state is DownloadState.Downloading || it.state is DownloadState.Connecting
-                }
-                DownloadTab.FINISHED -> downloads.filter { it.state is DownloadState.Completed }
-                DownloadTab.ERROR -> downloads.filter { it.state is DownloadState.Error }
-                DownloadTab.SCHEDULED -> downloads.filter { it.state is DownloadState.Scheduled }
+        get() = downloadsForTab(activeTab)
+
+    fun downloadsForTab(tab: DownloadTab): List<DownloadItem> {
+        val byTab = when (tab) {
+            DownloadTab.ALL -> downloads
+            DownloadTab.DOWNLOADING -> downloads.filter {
+                it.state is DownloadState.Downloading || it.state is DownloadState.Connecting
             }
-            return if (searchQuery.isBlank()) byTab
-            else byTab.filter { it.fileName.contains(searchQuery, ignoreCase = true) }
+            DownloadTab.PENDING -> downloads.filter {
+                it.state is DownloadState.Pending && !it.isQueued
+            }
+            DownloadTab.QUEUE -> downloads.filter {
+                it.state is DownloadState.Pending && it.isQueued
+            }
+            DownloadTab.FINISHED -> downloads.filter { it.state is DownloadState.Completed }
+            DownloadTab.ERROR -> downloads.filter { it.state is DownloadState.Error }
+            DownloadTab.SCHEDULED -> downloads.filter { it.state is DownloadState.Scheduled }
         }
+        return if (searchQuery.isBlank()) byTab
+        else byTab.filter { it.fileName.contains(searchQuery, ignoreCase = true) }
+    }
 }
 
 enum class DownloadTab(val labelRes: Int) {
     ALL(R.string.tab_all),
     DOWNLOADING(R.string.tab_downloading),
+    PENDING(R.string.tab_pending),
+    QUEUE(R.string.tab_queue),
     FINISHED(R.string.tab_finished),
     ERROR(R.string.tab_error),
     SCHEDULED(R.string.tab_scheduled)

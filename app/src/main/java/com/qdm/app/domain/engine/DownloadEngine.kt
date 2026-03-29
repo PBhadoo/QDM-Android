@@ -39,6 +39,8 @@ class DownloadEngine @Inject constructor(
 ) {
     private val activeJobs = ConcurrentHashMap<String, Job>()
     private val progressMutex = Mutex()
+    // Throttle UI updates — emit at most once per 250 ms per download
+    private val lastUiUpdate = ConcurrentHashMap<String, Long>()
 
     private val _stateMap = MutableStateFlow<Map<String, DownloadState>>(emptyMap())
     val stateFlow: StateFlow<Map<String, DownloadState>> = _stateMap.asStateFlow()
@@ -75,13 +77,29 @@ class DownloadEngine @Inject constructor(
                 var downloadedBytes = item.downloadedBytes
                 val totalBytes = item.totalBytes
 
+                // Pre-allocate the full file size so other apps can't steal the space
+                // and Files app shows the correct final size immediately.
+                // Only for fresh downloads (not resuming) with a known total size.
+                if (downloadedBytes == 0L && totalBytes > 0) {
+                    try {
+                        java.io.FileOutputStream(descriptor.fileDescriptor).channel.use { ch ->
+                            // Write one zero byte at the last position — this forces the OS
+                            // to allocate (or at least reserve) the full file extent.
+                            ch.write(java.nio.ByteBuffer.wrap(byteArrayOf(0)), totalBytes - 1)
+                        }
+                        QdmLog.d("DownloadEngine", "Pre-allocated $totalBytes bytes for ${item.fileName}")
+                    } catch (e: Exception) {
+                        QdmLog.w("DownloadEngine", "Pre-allocation failed (non-fatal): ${e.message}")
+                    }
+                }
+
                 updateState(downloadId, DownloadState.Downloading(
                     progress = if (totalBytes > 0) downloadedBytes.toFloat() / totalBytes else 0f,
                     speedBps = 0L, etaSeconds = 0L,
                     downloadedBytes = downloadedBytes, totalBytes = totalBytes
                 ))
 
-                val supportsRanges = totalBytes > 0 && item.threadCount > 1
+                val supportsRanges = totalBytes > 0 && item.supportsRanges && item.threadCount > 1
                 val threadCount = if (supportsRanges) item.threadCount else 1
 
                 supervisorScope {
@@ -105,17 +123,22 @@ class DownloadEngine @Inject constructor(
                                     progressMutex.withLock {
                                         downloadedBytes += bytes
                                         speedCalc.record(bytes)
-                                        val speed = speedCalc.speedBps()
-                                        val eta = speedCalc.etaSeconds(
-                                            (totalBytes - downloadedBytes).coerceAtLeast(0L)
-                                        )
-                                        val progress = if (totalBytes > 0)
-                                            downloadedBytes.toFloat() / totalBytes else 0f
-                                        updateState(downloadId, DownloadState.Downloading(
-                                            progress, speed, eta, downloadedBytes, totalBytes
-                                        ))
+                                        val now = System.currentTimeMillis()
+                                        val last = lastUiUpdate.getOrDefault(downloadId, 0L)
+                                        if (now - last >= 250L) {
+                                            lastUiUpdate[downloadId] = now
+                                            val speed = speedCalc.speedBps()
+                                            val eta = speedCalc.etaSeconds(
+                                                (totalBytes - downloadedBytes).coerceAtLeast(0L)
+                                            )
+                                            val progress = if (totalBytes > 0)
+                                                downloadedBytes.toFloat() / totalBytes else 0f
+                                            updateState(downloadId, DownloadState.Downloading(
+                                                progress, speed, eta, downloadedBytes, totalBytes
+                                            ))
+                                            repository.updateProgress(downloadId, downloadedBytes, speed, eta)
+                                        }
                                     }
-                                    repository.updateProgress(downloadId, downloadedBytes, speedCalc.speedBps(), speedCalc.etaSeconds((totalBytes - downloadedBytes).coerceAtLeast(0L)))
                                 }
                             ).download()
                         }
@@ -126,14 +149,24 @@ class DownloadEngine @Inject constructor(
                     if (failed != null) {
                         throw failed.exceptionOrNull() ?: Exception("Chunk failed")
                     }
+                    // Force final progress update regardless of throttle
+                    lastUiUpdate[downloadId] = System.currentTimeMillis()
+                    val finalProgress = if (totalBytes > 0) downloadedBytes.toFloat() / totalBytes else 1f
+                    updateState(downloadId, DownloadState.Downloading(
+                        finalProgress, 0L, 0L, downloadedBytes, totalBytes
+                    ))
+                    repository.updateProgress(downloadId, downloadedBytes, 0L, 0L)
                 }
                 } // end pfd.use
 
                 if (isActive) {
+                    lastUiUpdate.remove(downloadId)
                     FileUtils.markFileDownloadComplete(context, fileUri)
                     repository.markCompleted(downloadId)
                     updateState(downloadId, DownloadState.Completed)
                     QdmLog.i("DownloadEngine", "Completed id=$downloadId")
+                    // Auto-start next item from the queue if any
+                    triggerNextQueued(scope)
                 }
             } catch (e: Exception) {
                 if (activeJobs.containsKey(downloadId)) {
@@ -149,11 +182,13 @@ class DownloadEngine @Inject constructor(
 
     fun pauseDownload(downloadId: String) {
         activeJobs.remove(downloadId)?.cancel()
+        lastUiUpdate.remove(downloadId)
         updateState(downloadId, DownloadState.Paused)
     }
 
     fun cancelDownload(downloadId: String) {
         activeJobs.remove(downloadId)?.cancel()
+        lastUiUpdate.remove(downloadId)
         updateState(downloadId, DownloadState.Cancelled)
     }
 
@@ -201,6 +236,18 @@ class DownloadEngine @Inject constructor(
             headers["Authorization"] = "Basic $creds"
         }
         return headers
+    }
+
+    private fun triggerNextQueued(scope: CoroutineScope) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val next = repository.getNextQueuedDownloads(1).firstOrNull() ?: return@launch
+                QdmLog.i("DownloadEngine", "Auto-starting next queued: ${next.id} ${next.fileName}")
+                startDownload(next.id, next, scope)
+            } catch (e: Exception) {
+                QdmLog.w("DownloadEngine", "triggerNextQueued failed: ${e.message}")
+            }
+        }
     }
 
     private fun splitIntoChunks(

@@ -1,18 +1,28 @@
 package com.parveenbhadoo.qdm.presentation.screens.main
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.parveenbhadoo.qdm.MainActivity
 import com.parveenbhadoo.qdm.data.preferences.UserPreferencesDataStore
 import com.parveenbhadoo.qdm.domain.engine.DownloadEngine
+import com.parveenbhadoo.qdm.domain.model.DownloadItem
 import com.parveenbhadoo.qdm.domain.model.DownloadState
+import com.parveenbhadoo.qdm.domain.model.AddDownloadRequest
 import com.parveenbhadoo.qdm.domain.usecase.AddDownloadUseCase
+import com.parveenbhadoo.qdm.utils.FileUtils
 import com.parveenbhadoo.qdm.domain.usecase.CancelDownloadUseCase
 import com.parveenbhadoo.qdm.domain.usecase.GetDownloadsUseCase
 import com.parveenbhadoo.qdm.domain.usecase.PauseDownloadUseCase
 import com.parveenbhadoo.qdm.domain.usecase.ResumeDownloadUseCase
 import com.parveenbhadoo.qdm.utils.QdmLog
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +35,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val getDownloads: GetDownloadsUseCase,
     private val pauseDownload: PauseDownloadUseCase,
     private val resumeDownload: ResumeDownloadUseCase,
@@ -51,7 +62,6 @@ class MainViewModel @Inject constructor(
                 _uiState.update { it.copy(downloads = downloads) }
             }
         }
-        // Observe URLs coming from the browser or external intents
         viewModelScope.launch {
             MainActivity.pendingUrlFlow.filterNotNull().collect { url ->
                 QdmLog.i("MainViewModel", "External URL received: $url")
@@ -59,7 +69,6 @@ class MainViewModel @Inject constructor(
                 MainActivity.pendingUrlFlow.value = null
             }
         }
-        // Show folder setup dialog on first launch (when setup not yet acknowledged)
         viewModelScope.launch {
             prefs.isFolderSetupDoneFlow().first().let { done ->
                 if (!done) {
@@ -70,27 +79,22 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    /** User chose "Use Default" — no custom path needed, Downloads/QDM/{category} used automatically. */
     fun onFolderSetupUseDefault() {
         viewModelScope.launch {
             prefs.markFolderSetupDone()
-            QdmLog.i("MainViewModel", "Folder setup: using default Downloads/QDM/")
             _uiState.update { it.copy(showFolderSetupDialog = false) }
         }
     }
 
-    /** User chose a custom SAF folder. */
     fun onFolderSetupCustomPicked(uriString: String) {
         viewModelScope.launch {
             prefs.updateDefaultSavePath(uriString)
             prefs.markFolderSetupDone()
-            QdmLog.i("MainViewModel", "Folder setup: custom path=$uriString")
             _uiState.update { it.copy(showFolderSetupDialog = false) }
         }
     }
 
     fun dismissFolderSetupDialog() {
-        // Dismissed without picking — show again next time (setup not marked done)
         _uiState.update { it.copy(showFolderSetupDialog = false) }
     }
 
@@ -116,10 +120,105 @@ class MainViewModel @Inject constructor(
 
     fun startDownload(downloadId: String) {
         viewModelScope.launch {
-            // Use .first() to read directly from DB — avoids race where uiState
-            // hasn't yet been updated by the Room Flow after the insert.
             val item = getDownloads.execute().first().find { it.id == downloadId } ?: return@launch
             downloadEngine.startDownload(downloadId, item, viewModelScope)
+        }
+    }
+
+    // --- Per-item actions ---
+
+    fun onOpenFile(item: DownloadItem) {
+        if (item.savePath.isBlank()) return
+        try {
+            val uri = item.savePath.toUri()
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, item.mimeType.ifBlank { "*/*" })
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            QdmLog.w("MainViewModel", "Cannot open file: ${e.message}")
+        }
+    }
+
+    fun onShareFile(item: DownloadItem) {
+        if (item.savePath.isBlank()) return
+        try {
+            val uri = item.savePath.toUri()
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = item.mimeType.ifBlank { "*/*" }
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(intent, item.fileName).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+        } catch (e: Exception) {
+            QdmLog.w("MainViewModel", "Cannot share file: ${e.message}")
+        }
+    }
+
+    fun onOpenFolder(item: DownloadItem) {
+        try {
+            // Try to open in system Files app — navigate to the Downloads folder
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload%2FQDM"), "vnd.android.document/directory")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // Fallback: open generic file manager
+            try {
+                val fallback = Intent(Intent.ACTION_MAIN).apply {
+                    addCategory(Intent.CATEGORY_APP_FILES)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(fallback)
+            } catch (e2: Exception) {
+                QdmLog.w("MainViewModel", "Cannot open folder: ${e2.message}")
+            }
+        }
+    }
+
+    fun onCopyLink(item: DownloadItem) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("download url", item.url))
+    }
+
+    fun onRedownloadWithOptions(item: DownloadItem) {
+        showAddSheet(item.url)
+    }
+
+    fun onShowProperties(item: DownloadItem) {
+        _uiState.update { it.copy(propertiesItem = item) }
+    }
+
+    fun onDismissProperties() {
+        _uiState.update { it.copy(propertiesItem = null) }
+    }
+
+    fun onShowCopyMoveRename(item: DownloadItem) {
+        _uiState.update { it.copy(copyMoveRenameItem = item) }
+    }
+
+    fun onDismissCopyMoveRename() {
+        _uiState.update { it.copy(copyMoveRenameItem = null) }
+    }
+
+    /** Adds a URL directly to the auto-queue without showing the AddDownloadSheet. */
+    fun queueBulkUrl(url: String) {
+        viewModelScope.launch {
+            val fileName = FileUtils.extractFileNameFromUrl(url)
+            val settings = prefs.settingsFlow.first()
+            val request = AddDownloadRequest(
+                url = url,
+                fileName = FileUtils.sanitizeFileName(fileName),
+                savePath = settings.defaultSavePath,
+                threadCount = settings.defaultThreadCount,
+                userAgent = settings.defaultUserAgent
+            )
+            addDownload.execute(request, isQueued = true)
+            QdmLog.i("MainViewModel", "Bulk-queued: $url")
         }
     }
 }

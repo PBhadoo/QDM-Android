@@ -21,7 +21,12 @@ class DownloadRepository @Inject constructor(
     suspend fun getDownloadById(id: String): DownloadItem? =
         dao.getDownloadById(id)?.toDomainModel()
 
-    suspend fun addDownload(request: AddDownloadRequest): String {
+    /**
+     * Add a download.
+     * [isQueued] = true  → auto-starts when a slot opens (Queue tab)
+     * [isQueued] = false → waits for user to start manually (Pending tab)
+     */
+    suspend fun addDownload(request: AddDownloadRequest, isQueued: Boolean = false): String {
         val id = UUID.randomUUID().toString()
         dao.insertDownload(
             DownloadEntity(
@@ -47,7 +52,8 @@ class DownloadRepository @Inject constructor(
                 completedAt = null,
                 errorMessage = null,
                 scheduledAt = request.scheduledAt,
-                supportsRanges = request.supportsRanges
+                supportsRanges = request.supportsRanges,
+                isQueued = isQueued
             )
         )
         return id
@@ -71,6 +77,12 @@ class DownloadRepository @Inject constructor(
 
     suspend fun getPendingDownloads(): List<DownloadItem> =
         dao.getPendingDownloads().map { it.toDomainModel() }
+
+    suspend fun getNextQueuedDownloads(limit: Int = 1): List<DownloadItem> =
+        dao.getNextQueuedDownloads(limit).map { it.toDomainModel() }
+
+    suspend fun updateIsQueued(id: String, isQueued: Boolean) =
+        dao.updateIsQueued(id, isQueued)
 }
 
 private fun Map<String, String>.toJsonString(): String? {

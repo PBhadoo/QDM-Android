@@ -7,5 +7,6 @@ import javax.inject.Inject
 class AddDownloadUseCase @Inject constructor(
     private val repository: DownloadRepository
 ) {
-    suspend fun execute(request: AddDownloadRequest): String = repository.addDownload(request)
+    suspend fun execute(request: AddDownloadRequest, isQueued: Boolean = false): String =
+        repository.addDownload(request, isQueued)
 }

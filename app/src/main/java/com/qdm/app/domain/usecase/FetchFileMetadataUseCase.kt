@@ -42,7 +42,18 @@ class FetchFileMetadataUseCase @Inject constructor(
                 val fileName = FileUtils.extractFileNameFromDisposition(contentDisposition)
                     ?: FileUtils.extractFileNameFromUrl(url)
                 val mimeType = MimeTypeHelper.fromContentType(contentType)
-                val supportsRanges = acceptRanges != null && acceptRanges != "none"
+
+                // Determine range support:
+                // 1. If server explicitly says "none" → not resumable
+                // 2. If server says "bytes" → do a real test to confirm (some servers lie)
+                // 3. If header absent but size known → probe with a Range GET
+                val supportsRanges = when {
+                    acceptRanges == "none" -> false
+                    acceptRanges == "bytes" -> verifyRangeSupport(url, headers)
+                    totalBytes > 0 -> verifyRangeSupport(url, headers) // no header but size known → probe
+                    else -> false
+                }
+                QdmLog.d("FetchMetadata", "supportsRanges=$supportsRanges (acceptRanges=$acceptRanges)")
 
                 FileMetadata(
                     totalBytes = totalBytes,
@@ -53,6 +64,24 @@ class FetchFileMetadataUseCase @Inject constructor(
                     lastModified = lastModified
                 )
             }
+        }
+    }
+
+    /** Send Range: bytes=0-0 and check whether we get HTTP 206. */
+    private fun verifyRangeSupport(url: String, headers: Map<String, String>): Boolean {
+        return try {
+            val req = Request.Builder().url(url)
+                .header("Range", "bytes=0-0")
+                .header("Accept-Encoding", "identity")
+            headers.forEach { (k, v) -> req.header(k, v) }
+            val resp = client.newCall(req.build()).execute()
+            val is206 = resp.code == 206
+            resp.close()
+            QdmLog.d("FetchMetadata", "Range probe → HTTP ${resp.code}, supportsRanges=$is206")
+            is206
+        } catch (e: Exception) {
+            QdmLog.w("FetchMetadata", "Range probe failed: ${e.message}")
+            false
         }
     }
 

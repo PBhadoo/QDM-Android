@@ -12,9 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +34,7 @@ import com.parveenbhadoo.qdm.R
 fun MultiFab(
     onAddLink: () -> Unit,
     onPasteClipboard: () -> Unit,
-    onOpenBrowser: () -> Unit,
+    onImportFromFile: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -55,9 +54,9 @@ fun MultiFab(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 MiniFabItem(
-                    label = stringResource(R.string.open_browser),
-                    icon = { Icon(Icons.Default.Language, null) },
-                    onClick = { expanded = false; onOpenBrowser() }
+                    label = stringResource(R.string.import_from_file),
+                    icon = { Icon(Icons.Default.UploadFile, null) },
+                    onClick = { expanded = false; onImportFromFile() }
                 )
                 MiniFabItem(
                     label = stringResource(R.string.paste_from_clipboard),
@@ -95,8 +94,7 @@ private fun MiniFabItem(
             text = label,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier
-                .padding(horizontal = 8.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
         SmallFloatingActionButton(onClick = onClick) { icon() }
     }

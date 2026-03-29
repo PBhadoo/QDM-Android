@@ -59,7 +59,8 @@ data class DownloadEntity(
             completedAt = completedAt,
             errorMessage = errorMessage,
             scheduledAt = scheduledAt,
-            supportsRanges = supportsRanges
+            supportsRanges = supportsRanges,
+            isQueued = isQueued
         )
     }
 }

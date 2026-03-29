@@ -36,6 +36,8 @@ class UserPreferencesDataStore @Inject constructor(
         val DARK_MODE = stringPreferencesKey("dark_mode") // "system", "light", "dark"
         val USER_AGENT = stringPreferencesKey("user_agent")
         val LANGUAGE = stringPreferencesKey("language")
+        val ADBLOCK_ENABLED = booleanPreferencesKey("adblock_enabled")
+        val ADBLOCK_SOURCES = stringPreferencesKey("adblock_sources")  // comma-separated enabled source IDs
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data
@@ -98,4 +100,20 @@ class UserPreferencesDataStore @Inject constructor(
 
     suspend fun markFolderSetupDone() =
         context.dataStore.edit { it[Keys.FOLDER_SETUP_DONE] = true }
+
+    fun adBlockEnabledFlow(): Flow<Boolean> =
+        context.dataStore.data
+            .catch { if (it is IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw it }
+            .map { it[Keys.ADBLOCK_ENABLED] ?: true }
+
+    suspend fun updateAdBlockEnabled(enabled: Boolean) =
+        context.dataStore.edit { it[Keys.ADBLOCK_ENABLED] = enabled }
+
+    fun adBlockSourcesFlow(): Flow<String> =
+        context.dataStore.data
+            .catch { if (it is IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw it }
+            .map { it[Keys.ADBLOCK_SOURCES] ?: "" }
+
+    suspend fun updateAdBlockSources(enabledIds: Set<String>) =
+        context.dataStore.edit { it[Keys.ADBLOCK_SOURCES] = enabledIds.joinToString(",") }
 }

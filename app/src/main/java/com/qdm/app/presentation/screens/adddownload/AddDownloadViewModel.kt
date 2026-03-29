@@ -117,11 +117,11 @@ class AddDownloadViewModel @Inject constructor(
     fun onSavePathSelected(uri: String) = _uiState.update { it.copy(savePath = uri) }
 
     /**
-     * "Add" — enqueue to DB immediately, no auto-start.
+     * "Add" — adds to Pending (manual). User must tap Start to begin.
      * Derives filename from URL if metadata not yet fetched.
      */
     fun addToQueue(onAdded: (String) -> Unit) {
-        enqueue(autoStart = false, onDone = onAdded)
+        enqueue(autoStart = false, isQueued = false, onDone = onAdded)
     }
 
     /**
@@ -129,10 +129,17 @@ class AddDownloadViewModel @Inject constructor(
      * Only enabled once filename + size are known.
      */
     fun addAndStart(onStarted: (String) -> Unit) {
-        enqueue(autoStart = true, onDone = onStarted)
+        enqueue(autoStart = true, isQueued = false, onDone = onStarted)
     }
 
-    private fun enqueue(autoStart: Boolean, onDone: (String) -> Unit) {
+    /**
+     * Bulk import helper — adds to Queue (auto-starts when a slot opens).
+     */
+    fun addToAutoQueue(onAdded: (String) -> Unit) {
+        enqueue(autoStart = false, isQueued = true, onDone = onAdded)
+    }
+
+    private fun enqueue(autoStart: Boolean, isQueued: Boolean = false, onDone: (String) -> Unit) {
         val state = _uiState.value
         if (state.url.isBlank()) return
 
@@ -161,8 +168,8 @@ class AddDownloadViewModel @Inject constructor(
                 scheduledAt = state.scheduledAt,
                 supportsRanges = state.supportsRanges
             )
-            val id = addDownload.execute(request)
-            QdmLog.i("AddDownloadVM", "${if (autoStart) "AddAndStart" else "AddOnly"} id=$id file=${request.fileName}")
+            val id = addDownload.execute(request, isQueued = isQueued)
+            QdmLog.i("AddDownloadVM", "${if (autoStart) "AddAndStart" else if (isQueued) "AddQueued" else "AddPending"} id=$id file=${request.fileName}")
             if (autoStart) resumeDownload.execute(id)
             onDone(id)
         }
