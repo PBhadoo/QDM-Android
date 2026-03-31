@@ -162,7 +162,11 @@ class DownloadEngine @Inject constructor(
                 if (isActive) {
                     lastUiUpdate.remove(downloadId)
                     FileUtils.markFileDownloadComplete(context, fileUri)
-                    repository.markCompleted(downloadId)
+                    try {
+                        repository.markCompleted(downloadId)
+                    } catch (e: Exception) {
+                        QdmLog.w("DownloadEngine", "markCompleted DB write failed for $downloadId: ${e.message}")
+                    }
                     updateState(downloadId, DownloadState.Completed)
                     QdmLog.i("DownloadEngine", "Completed id=$downloadId")
                     // Auto-start next item from the queue if any
@@ -170,8 +174,19 @@ class DownloadEngine @Inject constructor(
                 }
             } catch (e: Exception) {
                 if (activeJobs.containsKey(downloadId)) {
-                    QdmLog.e("DownloadEngine", "Failed id=$downloadId: ${e.message}", e)
-                    fail(downloadId, e.message ?: "Download failed")
+                    val isNetworkError = e is java.net.SocketException ||
+                        e is java.net.ConnectException ||
+                        e is java.net.UnknownHostException
+                    if (isNetworkError) {
+                        QdmLog.w("DownloadEngine", "Network interruption for id=$downloadId, pausing: ${e.message}")
+                        withContext(NonCancellable) {
+                            repository.updateState(downloadId, DownloadState.Paused)
+                        }
+                        updateState(downloadId, DownloadState.Paused)
+                    } else {
+                        QdmLog.e("DownloadEngine", "Failed id=$downloadId: ${e.message}", e)
+                        fail(downloadId, e.message ?: "Download failed")
+                    }
                 }
             } finally {
                 activeJobs.remove(downloadId)

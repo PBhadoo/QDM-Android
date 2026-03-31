@@ -68,6 +68,15 @@
                 <data android:scheme="http" />
                 <data android:scheme="https" />
             </intent-filter>
+
+            <!-- Capture file downloads from browsers that pass a MIME type (e.g. Firefox) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" android:mimeType="*/*" />
+                <data android:scheme="https" android:mimeType="*/*" />
+            </intent-filter>
         </activity>
 
         <service

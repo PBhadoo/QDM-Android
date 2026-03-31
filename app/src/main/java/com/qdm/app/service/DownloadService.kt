@@ -115,8 +115,9 @@ class DownloadService : androidx.lifecycle.LifecycleService() {
     }
 
     private suspend fun stopIfQueueEmpty() {
-        if (!downloadEngine.hasActiveDownloads()) {
+        if (!downloadEngine.hasActiveDownloads() && repository.getNextQueuedDownloads(1).isEmpty()) {
             releaseWakeLocks()
+            stopSelf()
         }
     }
 
