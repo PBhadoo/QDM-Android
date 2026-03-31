@@ -58,8 +58,12 @@ class SettingsViewModel @Inject constructor(
                     conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
                     conn.connectTimeout = 10_000
                     conn.readTimeout = 10_000
-                    conn.connect()
-                    conn.inputStream.bufferedReader().readText().also { conn.disconnect() }
+                    try {
+                        conn.connect()
+                        conn.inputStream.bufferedReader().use { it.readText() }
+                    } finally {
+                        conn.disconnect()
+                    }
                 }
             }.onSuccess { json ->
                 val tagName = json.substringAfter("\"tag_name\":\"", "").substringBefore("\"").trim()

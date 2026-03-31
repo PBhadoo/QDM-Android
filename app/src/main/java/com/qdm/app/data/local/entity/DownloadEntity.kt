@@ -83,7 +83,7 @@ private fun String.parseHeadersJson(): Map<String, String> {
         val trimmed = trim().removePrefix("{").removeSuffix("}")
         if (trimmed.isBlank()) return result
         trimmed.split(",").forEach { pair ->
-            val parts = pair.split(":")
+            val parts = pair.split(":", limit = 2)
             if (parts.size == 2) {
                 result[parts[0].trim().removeSurrounding("\"")] =
                     parts[1].trim().removeSurrounding("\"")

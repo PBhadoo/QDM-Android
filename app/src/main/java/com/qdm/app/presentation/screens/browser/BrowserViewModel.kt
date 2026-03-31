@@ -247,7 +247,7 @@ class BrowserViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val content = withContext(Dispatchers.IO) {
-                    URL(source.url).openStream().bufferedReader().readText()
+                    URL(source.url).openStream().bufferedReader().use { it.readText() }
                 }
                 val parsed = parseFilterContent(content)
                 withContext(Dispatchers.IO) {
