@@ -21,8 +21,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.io.File
-import java.net.URL
 import javax.inject.Inject
 
 // --- Ad Block filter sources ---
@@ -98,7 +99,8 @@ class BrowserViewModel @Inject constructor(
     private val browserRepository: BrowserRepository,
     private val bookmarkRepository: BookmarkRepository,
     private val stateHolder: BrowserStateHolder,
-    private val prefs: UserPreferencesDataStore
+    private val prefs: UserPreferencesDataStore,
+    private val httpClient: OkHttpClient
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -247,7 +249,8 @@ class BrowserViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val content = withContext(Dispatchers.IO) {
-                    URL(source.url).openStream().bufferedReader().use { it.readText() }
+                    val req = Request.Builder().url(source.url).build()
+                    httpClient.newCall(req).execute().use { it.body?.string() ?: "" }
                 }
                 val parsed = parseFilterContent(content)
                 withContext(Dispatchers.IO) {

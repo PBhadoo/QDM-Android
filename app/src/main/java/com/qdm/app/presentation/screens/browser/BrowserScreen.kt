@@ -69,7 +69,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -104,7 +103,6 @@ fun BrowserScreen(
     val isBookmarked by viewModel.isBookmarked.collectAsStateWithLifecycle()
     val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
     var urlInput by remember { mutableStateOf(TextFieldValue(initialUrl)) }
     var menuExpanded by remember { mutableStateOf(false) }
@@ -156,20 +154,18 @@ fun BrowserScreen(
         webViewInstance?.settings?.loadsImagesAutomatically = uiState.loadImages
     }
 
-    // Show snackbar when media is detected
-    val detectedUrl = uiState.detectedMediaUrl
-    if (detectedUrl != null) {
-        scope.launch {
-            val result = snackbarHostState.showSnackbar(
-                message = "Media detected: ${detectedUrl.substringAfterLast('/').take(40)}",
-                actionLabel = "Download"
-            )
-            if (result == SnackbarResult.ActionPerformed) {
-                val cookies = android.webkit.CookieManager.getInstance().getCookie(uiState.currentUrl) ?: ""
-                triggerDownload(detectedUrl, uiState.detectedMediaHeaders, cookies)
-            }
-            viewModel.dismissMedia()
+    // Show snackbar when media is detected — keyed on the URL so it fires exactly once per detection
+    LaunchedEffect(uiState.detectedMediaUrl) {
+        val detectedUrl = uiState.detectedMediaUrl ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = "Media detected: ${detectedUrl.substringAfterLast('/').take(40)}",
+            actionLabel = "Download"
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            val cookies = android.webkit.CookieManager.getInstance().getCookie(uiState.currentUrl) ?: ""
+            triggerDownload(detectedUrl, uiState.detectedMediaHeaders, cookies)
         }
+        viewModel.dismissMedia()
     }
 
     // Tab panel drawer state

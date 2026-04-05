@@ -11,8 +11,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
@@ -42,8 +42,8 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermission()
 
         setContent {
-            val settings by preferencesDataStore.settingsFlow.collectAsState(
-                initial = com.parveenbhadoo.qdm.domain.model.AppSettings()
+            val settings by preferencesDataStore.settingsFlow.collectAsStateWithLifecycle(
+                initialValue = com.parveenbhadoo.qdm.domain.model.AppSettings()
             )
             val darkTheme = when (settings.darkMode) {
                 true -> true

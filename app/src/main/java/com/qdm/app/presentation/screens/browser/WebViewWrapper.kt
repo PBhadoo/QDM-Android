@@ -13,6 +13,7 @@ import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -35,6 +36,19 @@ fun WebViewWrapper(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+
+    // rememberUpdatedState ensures the DisposableEffect lambdas always read the latest
+    // values even though the DisposableEffect itself only runs once (keyed on webView).
+    val currentAdBlockHosts = rememberUpdatedState(adBlockHosts)
+    val currentOnMediaDetected = rememberUpdatedState(onMediaDetected)
+    val currentOnPageTitleChanged = rememberUpdatedState(onPageTitleChanged)
+    val currentOnProgressChanged = rememberUpdatedState(onProgressChanged)
+    val currentOnPageStarted = rememberUpdatedState(onPageStarted)
+    val currentOnPageFinished = rememberUpdatedState(onPageFinished)
+    val currentOnNavigationState = rememberUpdatedState(onNavigationState)
+    val currentOnAdBlocked = rememberUpdatedState(onAdBlocked)
+    val currentOnDownloadRequested = rememberUpdatedState(onDownloadRequested)
+
     val webView = remember {
         WebView(context).apply {
             // Hardware acceleration for smooth rendering
@@ -66,29 +80,29 @@ fun WebViewWrapper(
                 request: WebResourceRequest
             ): WebResourceResponse? {
                 val host = request.url.host?.lowercase() ?: ""
-                if (adBlockHosts.contains(host)) {
-                    onAdBlocked()
+                if (currentAdBlockHosts.value.contains(host)) {
+                    currentOnAdBlocked.value()
                     return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0)))
                 }
                 val urlStr = request.url.toString()
                 if (isMediaUrl(urlStr)) {
                     QdmLog.d("WebView", "Media URL intercepted: $urlStr")
                     val headers = request.requestHeaders ?: emptyMap()
-                    onMediaDetected(urlStr, headers)
+                    currentOnMediaDetected.value(urlStr, headers)
                 }
                 return null
             }
 
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
-                onPageStarted(url)
-                onNavigationState(view.canGoBack(), view.canGoForward())
+                currentOnPageStarted.value(url)
+                currentOnNavigationState.value(view.canGoBack(), view.canGoForward())
             }
 
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
-                onPageFinished(url)
-                onNavigationState(view.canGoBack(), view.canGoForward())
+                currentOnPageFinished.value(url)
+                currentOnNavigationState.value(view.canGoBack(), view.canGoForward())
             }
 
             override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
@@ -98,11 +112,11 @@ fun WebViewWrapper(
 
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
-                onProgressChanged(newProgress)
-                onNavigationState(view.canGoBack(), view.canGoForward())
+                currentOnProgressChanged.value(newProgress)
+                currentOnNavigationState.value(view.canGoBack(), view.canGoForward())
             }
             override fun onReceivedTitle(view: WebView, title: String) {
-                onPageTitleChanged(title)
+                currentOnPageTitleChanged.value(title)
             }
         }
 
@@ -115,7 +129,7 @@ fun WebViewWrapper(
             val headers = mutableMapOf<String, String>()
             userAgent?.let { headers["User-Agent"] = it }
             cookies.takeIf { it.isNotBlank() }?.let { headers["Cookie"] = it }
-            onDownloadRequested(downloadUrl, headers, cookies)
+            currentOnDownloadRequested.value(downloadUrl, headers, cookies)
         })
 
         webView.loadUrl(url)

@@ -5,7 +5,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.FileDescriptor
 import java.io.FileOutputStream
-import java.nio.channels.FileChannel
 import kotlin.coroutines.coroutineContext
 
 class ChunkDownloader(
@@ -35,37 +34,35 @@ class ChunkDownloader(
         }
 
         val response = client.newCall(requestBuilder.build()).execute()
-        if (!response.isSuccessful) {
-            throw IllegalStateException("HTTP ${response.code}: ${response.message}")
-        }
+        response.use { resp ->
+            if (!resp.isSuccessful) {
+                throw IllegalStateException("HTTP ${resp.code}: ${resp.message}")
+            }
 
-        // If we sent a Range header but got 200 (not 206), the server ignored the range.
-        // Treat this as a full-file response starting at 0 to avoid writing corrupt data.
-        val actualStartByte = if (startByte > 0 && response.code == 200) {
-            0L
-        } else {
-            startByte
-        }
+            // If we sent a Range header but got 200 (not 206), the server ignored the range.
+            // Treat this as a full-file response starting at 0 to avoid writing corrupt data.
+            val actualStartByte = if (startByte > 0 && resp.code == 200) 0L else startByte
 
-        val body = response.body ?: throw IllegalStateException("Empty response body")
-        val channel: FileChannel = FileOutputStream(fileDescriptor).channel
-        channel.position(actualStartByte)
+            val body = resp.body ?: throw IllegalStateException("Empty response body")
+            val buffer = ByteArray(BUFFER_SIZE)
+            var accumulatedBytes = 0L
 
-        val buffer = ByteArray(BUFFER_SIZE)
-        var accumulatedBytes = 0L
-
-        body.byteStream().use { stream ->
-            while (coroutineContext.isActive) {
-                val read = stream.read(buffer)
-                if (read == -1) break
-                channel.write(java.nio.ByteBuffer.wrap(buffer, 0, read))
-                accumulatedBytes += read
-                if (accumulatedBytes >= PROGRESS_INTERVAL_BYTES) {
-                    progressCallback(accumulatedBytes)
-                    accumulatedBytes = 0L
+            FileOutputStream(fileDescriptor).channel.use { channel ->
+                channel.position(actualStartByte)
+                body.byteStream().use { stream ->
+                    while (coroutineContext.isActive) {
+                        val read = stream.read(buffer)
+                        if (read == -1) break
+                        channel.write(java.nio.ByteBuffer.wrap(buffer, 0, read))
+                        accumulatedBytes += read
+                        if (accumulatedBytes >= PROGRESS_INTERVAL_BYTES) {
+                            progressCallback(accumulatedBytes)
+                            accumulatedBytes = 0L
+                        }
+                    }
+                    if (accumulatedBytes > 0) progressCallback(accumulatedBytes)
                 }
             }
-            if (accumulatedBytes > 0) progressCallback(accumulatedBytes)
         }
     }
 }
